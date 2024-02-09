@@ -62,11 +62,12 @@ END COMPONENT;
 
 
 COMPONENT ALU
-	PORT(a, b, c: in std_logic_vector(7 downto 0); -- a and b are the inputs from the register, c is the direct one from the decoder
-        op: in std_logic_vector(2 downto 0);
-        result_out: out std_logic_vector(7 downto 0);
-		  zero_flag: out std_logic
-		  );
+	PORT(
+			a, b, c: in std_logic_vector(7 downto 0); -- a and b are the inputs from the register, c is the direct one from the decoder
+			op: in std_logic_vector(2 downto 0);
+			result_out: out std_logic_vector(7 downto 0);
+			zero_flag: out std_logic
+			);
 END COMPONENT;
 
 COMPONENT reg
@@ -154,7 +155,6 @@ SIGNAL	seg7_in1 :  STD_LOGIC_VECTOR(3 DOWNTO 0);
 SIGNAL	seg7_in2 :  STD_LOGIC_VECTOR(3 DOWNTO 0);
 SIGNAL	seg7_in3 :  STD_LOGIC_VECTOR(3 DOWNTO 0);
 SIGNAL	seg7_in4 :  STD_LOGIC_VECTOR(3 DOWNTO 0);
-SIGNAL	seg7_in5 :  STD_LOGIC_VECTOR(7 DOWNTO 0);
 
 
 
@@ -164,20 +164,21 @@ BEGIN
 
 decoder_inst:	decoder
     PORT MAP (
-        clk => MAX10_CLK1_50,
-        instruction => instruction,
-		  alu_zero => alu_zero,
-        jmp => jmp_flag,
-		  jmp_dest => jmp_dest,
-		  reg_write => reg_write_flag,
-		  reg_write_address => reg_write_address,
-		  alu_reg_in1 => alu_reg_in1,
-		  alu_reg_in2 => alu_reg_in2,
-		  alu_immediate_in => alu_immediate_in,
-		  alu_op => alu_op);
+			clk => MAX10_CLK1_50,
+			instruction => instruction,
+			alu_zero => alu_zero,
+			jmp => jmp_flag,
+			jmp_dest => jmp_dest,
+			reg_write => reg_write_flag,
+			reg_write_address => reg_write_address,
+			alu_reg_in1 => alu_reg_in1,
+			alu_reg_in2 => alu_reg_in2,
+			alu_immediate_in => alu_immediate_in,
+			alu_op => alu_op);
 
 reg_inst:	reg 
-PORT MAP(w_enable => reg_write_flag,
+PORT MAP(
+			w_enable => reg_write_flag,
 			clk => MAX10_CLK1_50,
 			SW => SW,
 			Address_w => reg_write_address,
@@ -190,21 +191,24 @@ PORT MAP(w_enable => reg_write_flag,
 
 
 rom_inst:	rom 
-PORT MAP(en	=> rom_enable,
+PORT MAP
+			(en	=> rom_enable,
 			clk => MAX10_CLK1_50,
 			Address => instruction_address,
-		   Data_out => instruction);
+			Data_out => instruction);
 
 fetch_inst:	Fetch 
-PORT MAP(en => fetch_enable,
+PORT MAP(
+			en => fetch_enable,
 			clk => MAX10_CLK1_50,
 			rst => fetch_reset,
 			PC_load=> jmp_flag,
 			PC_Jump=> jmp_dest,
-		   PC_out=> instruction_address);
+		   	PC_out=> instruction_address);
 
 alu_inst:	ALU 
-PORT MAP(a => alu_data_in1, 
+PORT MAP(
+			a => alu_data_in1, 
 			b => alu_data_in2,
 			c => alu_immediate_in, 
 			op => alu_op, 
@@ -244,7 +248,7 @@ PORT MAP(iDIG => seg7_in4,
 
 
 b2v_inst5 : dig2dec
-PORT MAP(		 vol => display_number,
+PORT MAP(vol => display_number,
 		 seg0 => seg7_in4,
 		 seg1 => seg7_in3,
 		 seg2 => seg7_in2,
