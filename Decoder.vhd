@@ -5,25 +5,27 @@ use ieee.numeric_std.all;
 entity decoder is
     port (
         clk	:	in std_logic;
+		decoder_stall : in std_logic;
+		decoder_flush : in std_logic;
 		  
         instruction: in std_logic_vector(22 downto 0);
 		  
-		  alu_zero: in std_logic;
+		alu_zero: in std_logic;
 		  
         jmp: out std_logic;
-		  jmp_dest:  out std_logic_vector(7 downto 0);
-		  
---		  ram_read: out std_logic_vector;
---		  ram_write: out std_logic_vector;
---		  ram_address: out std_logic_vector(7 downto 0); -- Won't be necessary for this project
-		  
-		  reg_write: out std_logic;
-		  reg_write_address: out std_logic_vector(3 downto 0);
-		  
-		  alu_reg_in1: out std_logic_vector(3 downto 0);
-		  alu_reg_in2: out std_logic_vector(3 downto 0);
-		  alu_immediate_in: out std_logic_vector(7 downto 0);
-		  alu_op: out std_logic_vector(2 downto 0)
+		jmp_dest:  out std_logic_vector(7 downto 0);
+		
+--		ram_read: out std_logic_vector;
+--		ram_write: out std_logic_vector;
+--		ram_address: out std_logic_vector(7 downto 0); -- Won't be necessary for this project
+		
+		reg_write: out std_logic;
+		reg_write_address: out std_logic_vector(3 downto 0);
+		
+		alu_reg_in1: out std_logic_vector(3 downto 0);
+		alu_reg_in2: out std_logic_vector(3 downto 0);
+		alu_immediate_in: out std_logic_vector(7 downto 0);
+		alu_op: out std_logic_vector(2 downto 0)
     );
 end decoder;
 
@@ -40,7 +42,6 @@ signal alu_in4: std_logic_vector(3 downto 0);
 begin
 
 	-- Decompose the entry	
-
 	opcode <= instruction(22 downto 20);
 	reg_dest <= instruction(19 downto 16);
 	alu_in1 <= instruction(15 downto 12);
@@ -52,77 +53,89 @@ begin
 	decode:process(clk)
 	begin
 
-		if rising_edge(clk) then
+	if rising_edge(clk) then
+		if decoder_stall='0' and decoder_flush='0' then
 
-		jmp <= '0';
-		reg_write <= '0';
+			jmp <= '0';
+			reg_write <= '0';
 
-		alu_op <= opcode;
+			alu_op <= opcode;
 
-		case opcode is
+			case opcode is
+				
+				when "000" => -- ADD
+					reg_write <= '1';
+					reg_write_address <= reg_dest;
+					
+					alu_reg_in1 <= alu_in1;
+					alu_immediate_in <= alu_in2 & alu_in3;
+					
+					
+				when "001" => -- SUB
+					reg_write <= '1';
+					reg_write_address <= reg_dest;
+					
+					alu_reg_in1 <= alu_in1;
+					alu_immediate_in <= alu_in2 & alu_in3;
+					
+				when "010" => -- FLC
+					reg_write <= '1';
+					reg_write_address <= reg_dest;
+					
+					alu_reg_in1 <= alu_in1;
+					alu_reg_in2 <= alu_in2;
+					alu_immediate_in <= alu_in3 & alu_in4;
+				
+				
+				when "011" => -- MOV
+					reg_write <= '1';
+					reg_write_address <= reg_dest;
+					
+					alu_immediate_in <= alu_in1 & alu_in2;
+					
+				when "100" => -- CAE
+					reg_write <= '1';
+					reg_write_address <= reg_dest;
+					
+					alu_reg_in1 <= alu_in1;
+					alu_reg_in2 <= alu_in2;
+				
+				when "101" => -- PASS
+					alu_immediate_in <= reg_dest & alu_in1;
+				
+				when "110" => -- JMPZ -- #FIXME: reimplement ASAP
+					if alu_zero = '1' then
+						jmp <= '1';
+					else
+						jmp <= '0';
+					end if;
+					jmp_dest <= reg_dest & alu_in1;
+				
+				when "111" => -- AND
+					reg_write <= '1';
+					reg_write_address <= reg_dest;
+					
+					alu_reg_in1 <= alu_in1;
+					alu_immediate_in <= alu_in2 & alu_in3;
+					
+				when others => NULL;
+				
 			
-			when "000" => -- ADD
-				reg_write <= '1';
-				reg_write_address <= reg_dest;
-				
-				alu_reg_in1 <= alu_in1;
-				alu_immediate_in <= alu_in2 & alu_in3;
-				
-				
-			when "001" => -- SUB
-				reg_write <= '1';
-				reg_write_address <= reg_dest;
-				
-				alu_reg_in1 <= alu_in1;
-				alu_immediate_in <= alu_in2 & alu_in3;
-				
-			when "010" => -- FLC
-				reg_write <= '1';
-				reg_write_address <= reg_dest;
-				
-				alu_reg_in1 <= alu_in1;
-				alu_reg_in2 <= alu_in2;
-				alu_immediate_in <= alu_in3 & alu_in4;
-			
-			
-			when "011" => -- MOV
-				reg_write <= '1';
-				reg_write_address <= reg_dest;
-				
-				alu_immediate_in <= alu_in1 & alu_in2;
-				
-			when "100" => -- CAE
-				reg_write <= '1';
-				reg_write_address <= reg_dest;
-				
-				alu_reg_in1 <= alu_in1;
-				alu_reg_in2 <= alu_in2;
-			
-			when "101" => -- PASS
-				-- Nothing
-			
-			when "110" => -- JMPZ -- All jumps need 3 clock cycles to complete
-				if alu_zero = '1' then
-					jmp <= '1';
-				else
-					jmp <= '0';
-				end if;
-				jmp_dest <= reg_dest & alu_in1;
-			
-			when "111" => -- AND
-				reg_write <= '1';
-				reg_write_address <= reg_dest;
-				
-				alu_reg_in1 <= alu_in1;
-				alu_immediate_in <= alu_in2 & alu_in3;
-				
-			when others => NULL;
-			
-			
-		end case;
+			end case;
 
+		elsif decoder_flush='1' then
+			jmp <= '0';
+			reg_write <= '0';
+
+			alu_op <= "101"; -- pass
 		end if;
+	end if;
 		
+	-- Reg x0 is read only
+	if reg_dest = "0000" then
+		reg_write <= '0';
+	end if;
+
 	end process decode;
 	 
 	 

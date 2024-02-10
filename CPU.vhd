@@ -18,7 +18,18 @@ ENTITY CPU IS
 		HEX3 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
 		HEX4 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
 		HEX5 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
-		LEDR :  OUT  STD_LOGIC_VECTOR(9 DOWNTO 0)	
+		LEDR :  OUT  STD_LOGIC_VECTOR(9 DOWNTO 0);
+
+		pc_debug : out std_logic_vector(7 downto 0);
+		instruction_debug : out std_logic_vector(22 downto 0);
+		result_debug : out std_logic_vector(7 downto 0);
+		-- data_hazard_SDRAM_debug : out std_logic;
+		branching_hazard_debug : out std_logic;
+		jmp_debug : out std_logic;
+		jmp_addr_debug : out std_logic_vector(7 downto 0);
+
+		r1dbg : out std_logic_vector(7 downto 0)
+
 	);
 
 END CPU;
@@ -32,13 +43,29 @@ SIGNAL	fetch_enable : std_logic := '1';
 SIGNAL	rom_enable : std_logic := '1';
 SIGNAL	fetch_reset : std_logic := '0';
 
-SIGNAL	instruction_address : std_logic_vector(7 downto 0) := "00000000";
-SIGNAL	instruction : std_logic_vector(22 downto 0) := "10100000000000000000000";
+SIGNAL  fetch_stall : std_logic := '0';
+SIGNAL  fetch_flush : std_logic := '0';
+SIGNAL  decoder_stall : std_logic := '0';
+SIGNAL  decoder_flush : std_logic := '0';
+SIGNAL  alu_stall : std_logic := '0';
+SIGNAL  alu_flush : std_logic := '0';
+SIGNAL  memory_stall : std_logic := '0';
+--SIGNAL  memory_flush : std_logic := '0'; -- for future use
 
-SIGNAL	jmp_flag : std_logic;
-SIGNAL	jmp_dest:  std_logic_vector(7 downto 0);
-SIGNAL	reg_write_flag : std_logic;
-SIGNAL	reg_write_address : std_logic_vector(3 downto 0);
+SIGNAL	instruction_address : std_logic_vector(7 downto 0) := "00000000";
+SIGNAL	instruction_fetched : std_logic_vector(22 downto 0) := "10100000000000000000000";
+SIGNAL  instruction : std_logic_vector(22 downto 0) := "10100000000000000000000";
+
+SIGNAL	jmp_flag_decoder : std_logic;
+SIGNAL	jmp_dest_decoder :  std_logic_vector(7 downto 0);
+SIGNAL  jmp_flag_alu : std_logic;
+SIGNAL  jmp_dest_alu :  std_logic_vector(7 downto 0);
+
+SIGNAL	reg_write_flag_decoder : std_logic;
+SIGNAL	reg_write_address_decoder : std_logic_vector(3 downto 0);
+SIGNAL	reg_write_flag_alu : std_logic;
+SIGNAL	reg_write_address_alu : std_logic_vector(3 downto 0);
+
 SIGNAL	alu_reg_in1 : std_logic_vector(3 downto 0);
 SIGNAL	alu_reg_in2 : std_logic_vector(3 downto 0);
 SIGNAL	alu_immediate_in: std_logic_vector(7 downto 0);
@@ -70,27 +97,92 @@ BEGIN
 
 -- Component instantiation inside the concurrent statements
 
+instruction_debug <= instruction;
+result_debug <= alu_result;
+pc_debug <= instruction_address;
+jmp_debug <= jmp_flag_alu;
+jmp_addr_debug <= jmp_dest_alu;
+-- data_hazard_SDRAM_debug <= data_hazard_SDRAM;
+branching_hazard_debug <= jmp_flag_alu;
+
+pipeline_control_inst: entity work.pipeline_control
+port map (
+  data_hazard_SDRAM     => '0', -- #TODO: fix this condition
+  branching_hazard      => jmp_flag_alu,
+  fetch_stall_command   => fetch_stall,
+  decoder_stall_command => decoder_stall,
+  alu_stall_command     => alu_stall,
+  memory_stall_command  => memory_stall,
+  fetch_flush_command   => fetch_flush,
+  decoder_flush_command => decoder_flush,
+  alu_flush_command     => alu_flush
+  );
+
+fetch_inst:	entity work.Fetch 
+PORT MAP(
+			en => fetch_enable,
+			clk => MAX10_CLK1_50,
+			reset => fetch_reset,
+			fetch_stall => fetch_stall,
+			fetch_flush => fetch_flush,
+			PC_jump_flag=> jmp_flag_alu,
+			PC_jump_addr=> jmp_dest_alu,
+		   	PC_out=> instruction_address);
+
+rom_inst:	entity work.rom 
+PORT MAP
+			(en	=> rom_enable,
+			clk => MAX10_CLK1_50,
+			Address => instruction_address,
+			Data_out => instruction_fetched);
+
+instruction <= instruction_fetched when fetch_flush='0' else "10100000000000000000000";
 
 decoder_inst: entity work.decoder
     PORT MAP (
 			clk => MAX10_CLK1_50,
 			instruction => instruction,
+			decoder_stall => decoder_stall,
+			decoder_flush => decoder_flush,
 			alu_zero => alu_zero,
-			jmp => jmp_flag,
-			jmp_dest => jmp_dest,
-			reg_write => reg_write_flag,
-			reg_write_address => reg_write_address,
+			jmp => jmp_flag_decoder,
+			jmp_dest => jmp_dest_decoder,
+			reg_write => reg_write_flag_decoder,
+			reg_write_address => reg_write_address_decoder,
 			alu_reg_in1 => alu_reg_in1,
 			alu_reg_in2 => alu_reg_in2,
 			alu_immediate_in => alu_immediate_in,
 			alu_op => alu_op);
 
-reg_inst:	entity work.reg 
+
+
+alu_inst:	entity work.ALU 
 PORT MAP(
-			w_enable => reg_write_flag,
+			clk => MAX10_CLK1_50,
+			alu_stall => alu_stall,
+        	alu_flush => alu_flush,
+			a => reg_data_out1, 
+			b => reg_data_out2,
+			c => alu_immediate_in, 
+			op => alu_op, 
+			result_out => alu_result,
+			zero_flag => alu_zero,
+			jmp_flag_decoder => jmp_flag_decoder,
+			jmp_dest_decoder => jmp_dest_decoder,
+			jmp_flag_alu => jmp_flag_alu,
+			jmp_dest_alu => jmp_dest_alu,
+			reg_write_flag_decoder => reg_write_flag_decoder,
+			reg_write_address_decoder => reg_write_address_decoder,
+			reg_write_flag_alu => reg_write_flag_alu,
+			reg_write_address_alu => reg_write_address_alu
+	);
+
+reg_inst:	entity work.reg 
+PORT MAP(r1dbg => r1dbg,
+			w_enable => reg_write_flag_alu,
 			clk => MAX10_CLK1_50,
 			SW => SW,
-			Address_w => reg_write_address,
+			Address_w => reg_write_address_alu,
 			Address_r_1 => alu_reg_in1,
 			Address_r_2 => alu_reg_in2,
 			Data_in => alu_result,
@@ -99,36 +191,9 @@ PORT MAP(
 			Display_out => display_number);
 
 
-rom_inst:	entity work.rom 
-PORT MAP
-			(en	=> rom_enable,
-			clk => MAX10_CLK1_50,
-			Address => instruction_address,
-			Data_out => instruction);
 
-fetch_inst:	entity work.Fetch 
-PORT MAP(
-			en => fetch_enable,
-			clk => MAX10_CLK1_50,
-			rst => fetch_reset,
-			PC_load=> jmp_flag,
-			PC_Jump=> jmp_dest,
-		   	PC_out=> instruction_address);
 
-alu_inst:	entity work.ALU 
-PORT MAP(
-			a => reg_data_out1, 
-			b => reg_data_out2,
-			c => alu_immediate_in, 
-			op => alu_op, 
-			result_out => alu_result,
-			zero_flag => alu_zero);
-
-			
-
-		 
 -- LED display components
-
 
 b2v_inst : entity work.seg7_lut
 PORT MAP(iDIG => seg7_in0,

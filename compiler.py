@@ -31,16 +31,13 @@ for line in Lines:
         case 'JMPZ':
             counter += 1
             counter += 1
-            counter += 1
         case 'AND':
             counter += 1
         case 'GOTO':
             counter += 1
             counter += 1
             counter += 1
-            counter += 1
         case 'GOTOZ':
-            counter += 1
             counter += 1
             counter += 1
         case other:
@@ -96,11 +93,9 @@ for line in Lines:
             counter += 1
         case 'JMPZ':
             dest = int(words[1][1:])
+            file_w.write('Data_Rom({:d}) <= \"10100000000000000000000\";\n'.format(counter))
+            counter += 1
             file_w.write('Data_Rom({:d}) <= \"110{:08b}000000000000\";\n'.format(counter,dest))
-            counter += 1
-            file_w.write('Data_Rom({:d}) <= \"10100000000000000000000\";\n'.format(counter))
-            counter += 1
-            file_w.write('Data_Rom({:d}) <= \"10100000000000000000000\";\n'.format(counter))
             counter += 1
         case 'AND':
             dest = int(words[1][1:])
@@ -112,19 +107,15 @@ for line in Lines:
             dest = gotos[words[1]]
             file_w.write('Data_Rom({:d}) <= \"01111010000000000000000\";\n'.format(counter))
             counter += 1
+            file_w.write('Data_Rom({:d}) <= \"10100000000000000000000\";\n'.format(counter))
+            counter += 1
             file_w.write('Data_Rom({:d}) <= \"110{:08b}000000000000\";\n'.format(counter,dest))
-            counter += 1
-            file_w.write('Data_Rom({:d}) <= \"10100000000000000000000\";\n'.format(counter))
-            counter += 1
-            file_w.write('Data_Rom({:d}) <= \"10100000000000000000000\";\n'.format(counter))
             counter += 1
         case 'GOTOZ':
             dest = gotos[words[1]]
+            file_w.write('Data_Rom({:d}) <= \"10100000000000000000000\";\n'.format(counter))
+            counter += 1
             file_w.write('Data_Rom({:d}) <= \"110{:08b}000000000000\";\n'.format(counter,dest))
-            counter += 1
-            file_w.write('Data_Rom({:d}) <= \"10100000000000000000000\";\n'.format(counter))
-            counter += 1
-            file_w.write('Data_Rom({:d}) <= \"10100000000000000000000\";\n'.format(counter))
             counter += 1
         case other:
             assert(gotos[opcode.rstrip(":")] == counter)

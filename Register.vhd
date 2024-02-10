@@ -5,7 +5,7 @@ Use ieee.numeric_std.all ;
 
 
 entity reg is
-	port(
+	port(r1dbg : out std_logic_vector(7 downto 0);
 			w_enable :  in std_logic;
 			clk		:	in std_logic;
 			SW :  IN  STD_LOGIC_VECTOR(9 DOWNTO 0);
@@ -28,7 +28,7 @@ signal Data_reg : reg := (others => (others => '0')) ;
 
 --------------- BEGIN -----------------------------------------------------------------
 begin
-
+r1dbg <= Data_reg(1);
 Display_out <= Data_reg(0) & (Data_reg(1) and "00000111");
 
 	acces_reg:process(clk)
