@@ -12,15 +12,15 @@ entity Fetch is
 			fetch_stall : in std_logic;
 			fetch_flush : in std_logic;
 			PC_jump_flag	:	in std_logic;
-			PC_jump_addr	:	in std_logic_vector(7 downto 0);
-			PC_out	:	out std_logic_vector(7 downto 0)
+			PC_jump_addr	:	in std_logic_vector(31 downto 0);
+			PC_out	:	out std_logic_vector(31 downto 0)
 			);
 end Fetch;
 
 
 architecture Fetch_a of Fetch is
 
-signal PC_counter: std_logic_vector(7 downto 0);
+signal PC_counter: std_logic_vector(31 downto 0);
 
 Begin
 

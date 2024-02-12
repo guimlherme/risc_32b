@@ -8,133 +8,122 @@ entity decoder is
 		decoder_stall : in std_logic;
 		decoder_flush : in std_logic;
 		  
-        instruction: in std_logic_vector(22 downto 0);
-		  
-		alu_zero: in std_logic;
-		  
-        jmp: out std_logic;
-		jmp_dest:  out std_logic_vector(7 downto 0);
+        instruction: in std_logic_vector(31 downto 0);
 		
---		ram_read: out std_logic_vector;
---		ram_write: out std_logic_vector;
---		ram_address: out std_logic_vector(7 downto 0); -- Won't be necessary for this project
+		reg_write_address: out std_logic_vector(4 downto 0);
 		
-		reg_write: out std_logic;
-		reg_write_address: out std_logic_vector(3 downto 0);
-		
-		alu_reg_in1: out std_logic_vector(3 downto 0);
-		alu_reg_in2: out std_logic_vector(3 downto 0);
-		alu_immediate_in: out std_logic_vector(7 downto 0);
-		alu_op: out std_logic_vector(2 downto 0)
+		alu_reg_in1: out std_logic_vector(4 downto 0);
+		alu_reg_in2: out std_logic_vector(4 downto 0);
+		alu_immediate_in: out std_logic_vector(31 downto 0);
+		alu_op: out std_logic_vector(6 downto 0);
+		alu_funct3: out std_logic_vector(2 downto 0);
+		alu_funct7: out std_logic_vector(6 downto 0);
+
+		decoder_pc: in std_logic_vector(31 downto 0);
+		alu_pc: out std_logic_vector(31 downto 0)
     );
 end decoder;
 
 architecture decoder_a of decoder is
 
-signal opcode: std_logic_vector(2 downto 0);
-signal reg_dest: std_logic_vector(3 downto 0);
-signal alu_in1: std_logic_vector(3 downto 0);
-signal alu_in2: std_logic_vector(3 downto 0);
-signal alu_in3: std_logic_vector(3 downto 0);
-signal alu_in4: std_logic_vector(3 downto 0);
+constant NOP_instruction : std_logic_vector(31 downto 0) := "00000000000000000000000000010011";
+
+signal opcode: std_logic_vector(6 downto 0);
+signal reg_dest: std_logic_vector(4 downto 0);
+
+signal funct3: std_logic_vector(2 downto 0);
+signal reg_in1: std_logic_vector(4 downto 0);
+signal reg_in2: std_logic_vector(4 downto 0);
+signal funct7: std_logic_vector(6 downto 0);
+
+signal imm_sign: std_logic;
+signal imm_10_5_isbj: std_logic_vector(5 downto 0);
+signal imm_4_1_ij: std_logic_vector(3 downto 0);
+signal imm_4_1_sb: std_logic_vector(3 downto 0);
+signal imm_30_20_u: std_logic_vector(10 downto 0);
+signal imm_19_12_uj: std_logic_vector(7 downto 0);
 
 
 begin
 
-	-- Decompose the entry	
-	opcode <= instruction(22 downto 20);
-	reg_dest <= instruction(19 downto 16);
-	alu_in1 <= instruction(15 downto 12);
-	alu_in2 <= instruction(11 downto 8);
-	alu_in3 <= instruction(7 downto 4);
-	alu_in4 <= instruction(3 downto 0);
+	-- Decompose the entry into helper signals
+	-- R-type
+	opcode <= instruction(6 downto 0);
+	reg_dest <= instruction(11 downto 7); -- rd
+	funct3 <= instruction(14 downto 12);
+	reg_in1 <= instruction(19 downto 15); -- rs1
+	reg_in2 <= instruction(24 downto 20); -- rs2
+	funct7 <= instruction(31 downto 25);
+
+	-- Immediate
+	imm_sign <= instruction(31);
+	imm_10_5_isbj <= instruction(30 downto 25);
+	imm_4_1_ij <= instruction(24 downto 21);
+	imm_4_1_sb <= instruction(11 downto 8);
+	imm_30_20_u <= instruction(30 downto 20);
+	imm_19_12_uj <= instruction(19 downto 12);
+
+
+
 
 
 	decode:process(clk)
 	begin
 
+
 	if rising_edge(clk) then
 		if decoder_stall='0' and decoder_flush='0' then
 
-			jmp <= '0';
-			reg_write <= '0';
+			alu_pc <= decoder_pc;
+			reg_write_address <= reg_dest;
 
 			alu_op <= opcode;
+			alu_funct3 <= funct3;
+			alu_reg_in1 <= reg_in1;
+			alu_reg_in2 <= reg_in2;
+			alu_funct7 <= funct7;
 
+			-- Decode immediate
+			-- #TODO: optimize funct7 by encoding it here
 			case opcode is
-				
-				when "000" => -- ADD
-					reg_write <= '1';
-					reg_write_address <= reg_dest;
-					
-					alu_reg_in1 <= alu_in1;
-					alu_immediate_in <= alu_in2 & alu_in3;
-					
-					
-				when "001" => -- SUB
-					reg_write <= '1';
-					reg_write_address <= reg_dest;
-					
-					alu_reg_in1 <= alu_in1;
-					alu_immediate_in <= alu_in2 & alu_in3;
-					
-				when "010" => -- FLC
-					reg_write <= '1';
-					reg_write_address <= reg_dest;
-					
-					alu_reg_in1 <= alu_in1;
-					alu_reg_in2 <= alu_in2;
-					alu_immediate_in <= alu_in3 & alu_in4;
-				
-				
-				when "011" => -- MOV
-					reg_write <= '1';
-					reg_write_address <= reg_dest;
-					
-					alu_immediate_in <= alu_in1 & alu_in2;
-					
-				when "100" => -- CAE
-					reg_write <= '1';
-					reg_write_address <= reg_dest;
-					
-					alu_reg_in1 <= alu_in1;
-					alu_reg_in2 <= alu_in2;
-				
-				when "101" => -- PASS
-					alu_immediate_in <= reg_dest & alu_in1;
-				
-				when "110" => -- JMPZ -- #FIXME: reimplement ASAP
-					if alu_zero = '1' then
-						jmp <= '1';
-					else
-						jmp <= '0';
-					end if;
-					jmp_dest <= reg_dest & alu_in1;
-				
-				when "111" => -- AND
-					reg_write <= '1';
-					reg_write_address <= reg_dest;
-					
-					alu_reg_in1 <= alu_in1;
-					alu_immediate_in <= alu_in2 & alu_in3;
-					
-				when others => NULL;
-				
-			
+				when "1100111"|"0000011"|"0010011" => -- I-type
+					alu_immediate_in(31 downto 11) <= (others => imm_sign);
+					alu_immediate_in(10 downto 5) <= imm_10_5_isbj;
+					alu_immediate_in(4 downto 1) <= imm_4_1_ij;
+					alu_immediate_in(0) <= instruction(20);
+				when "0100011" => -- S-type
+					alu_immediate_in(31 downto 11) <= (others => imm_sign);
+					alu_immediate_in(10 downto 5) <= imm_10_5_isbj;
+					alu_immediate_in(4 downto 1) <= imm_4_1_sb;
+					alu_immediate_in(0) <= instruction(7);
+				when "1100011" => -- B-type
+					alu_immediate_in(31 downto 12) <= (others => imm_sign);
+					alu_immediate_in(11) <= instruction(7);
+					alu_immediate_in(10 downto 5) <= imm_10_5_isbj;
+					alu_immediate_in(4 downto 1) <= imm_4_1_sb;
+					alu_immediate_in(0) <= '0';
+				when "0110111"|"0010111" => -- U-type
+					alu_immediate_in(31) <= imm_sign;
+					alu_immediate_in(30 downto 20) <= imm_30_20_u;
+					alu_immediate_in(19 downto 12) <= imm_19_12_uj;
+					alu_immediate_in(11 downto 0) <= (others => '0');
+				when "1101111" => -- J-type
+					alu_immediate_in(31 downto 20) <= (others => imm_sign);
+					alu_immediate_in(19 downto 12) <= imm_19_12_uj;
+					alu_immediate_in(11) <= instruction(20);
+					alu_immediate_in(10 downto 5) <= imm_10_5_isbj;
+					alu_immediate_in(4 downto 1) <= imm_4_1_ij;
+					alu_immediate_in(0) <= '0';
+				when others => 
+					alu_immediate_in <= (others => '-');
 			end case;
 
 		elsif decoder_flush='1' then
-			jmp <= '0';
-			reg_write <= '0';
-
-			alu_op <= "101"; -- pass
+			alu_op <= NOP_instruction(6 downto 0);
+			reg_write_address <= NOP_instruction(11 downto 7);
 		end if;
 	end if;
-		
-	-- Reg x0 is read only
-	if reg_dest = "0000" then
-		reg_write <= '0';
-	end if;
+
 
 	end process decode;
 	 

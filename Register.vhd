@@ -5,42 +5,48 @@ Use ieee.numeric_std.all ;
 
 
 entity reg is
-	port(r1dbg : out std_logic_vector(7 downto 0);
+	port(r1dbg : out std_logic_vector(31 downto 0);
 			w_enable :  in std_logic;
 			clk		:	in std_logic;
-			SW :  IN  STD_LOGIC_VECTOR(9 DOWNTO 0);
-			Address_w	:	in std_logic_vector(3 downto 0);
-			Address_r_1 :  in std_logic_vector(3 downto 0); --address of a
-			Address_r_2 :  in std_logic_vector(3 downto 0); --address of b
-			Data_in	:	in std_logic_vector(7 downto 0);
-			Data_out_1:	out std_logic_vector(7 downto 0); -- value a in ALU
-			Data_out_2:	out std_logic_vector(7 downto 0); -- value b in ALU
-			Display_out: out std_logic_vector(15 downto 0) -- the two last registers (14,15) go to the display
+			SW :  IN  STD_LOGIC_VECTOR(9 DOWNTO 0); -- board switches
+			Address_w	:	in std_logic_vector(4 downto 0);
+			Address_r_1 :  in std_logic_vector(4 downto 0); --address of rs1
+			Address_r_2 :  in std_logic_vector(4 downto 0); --address of rs2
+			Data_in	:	in std_logic_vector(31 downto 0);
+			Data_out_1:	out std_logic_vector(31 downto 0); -- value rs1 in ALU
+			Data_out_2:	out std_logic_vector(31 downto 0); -- value rs2 in ALU
+			Display_out: out std_logic_vector(15 downto 0) -- goes to the display
 	);
 end reg;
 
 architecture reg_arch of reg is
 
 
-type reg is array(0 to 15) of std_logic_vector(7 downto 0);
+type reg is array(0 to 31) of std_logic_vector(31 downto 0);
 
 signal Data_reg : reg := (others => (others => '0')) ;
+signal Address_w_int : integer ;
 
 --------------- BEGIN -----------------------------------------------------------------
 begin
-r1dbg <= Data_reg(1);
-Display_out <= Data_reg(0) & (Data_reg(1) and "00000111");
+
+Address_w_int <= to_integer(unsigned(Address_w)) ;
+
+r1dbg <= Data_reg(1); -- debug
+ -- x0 is hard wired to zero;
+Display_out <= Data_reg(1)(15 downto 0);
 
 	acces_reg:process(clk)
 		begin
-		
 		if rising_edge(clk) then
---			Data_reg(0) <= std_logic_vector(unsigned(Data_reg(0)) + 1); -- implementation du program counter
---			pc <= Data_reg(0); -- pc was moved to fetch
 			if w_enable='1' then
-				Data_reg(to_integer(unsigned(Address_w))) <= Data_in;
+				if Address_w_int = 0 then -- x0 is hard wired to zero;
+					Data_reg(0) <= x"00000000";
+				else
+					Data_reg(Address_w_int) <= Data_in;
+				end if;
 			end if;
-			Data_reg(2) <= SW(8 downto 1);
+			-- Data_reg(XXXXXX) <= SW(8 downto 1);
 		end if;
 		
 	end process acces_reg;
