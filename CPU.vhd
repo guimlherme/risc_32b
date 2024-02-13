@@ -11,6 +11,7 @@ ENTITY CPU IS
 	PORT
 	(
 		MAX10_CLK1_50 :  IN  STD_LOGIC; -- 50 MHz clock
+		RESET : IN STD_LOGIC;
 		SW :  IN  STD_LOGIC_VECTOR(9 DOWNTO 0);
 		HEX0 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
 		HEX1 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
@@ -18,18 +19,7 @@ ENTITY CPU IS
 		HEX3 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
 		HEX4 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
 		HEX5 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
-		LEDR :  OUT  STD_LOGIC_VECTOR(9 DOWNTO 0);
-
-		pc_debug : out std_logic_vector(31 downto 0);
-		instruction_debug : out std_logic_vector(31 downto 0);
-		result_debug : out std_logic_vector(31 downto 0);
-		-- data_hazard_SDRAM_debug : out std_logic;
-		branching_hazard_debug : out std_logic;
-		jmp_debug : out std_logic;
-		jmp_addr_debug : out std_logic_vector(31 downto 0);
-
-		r1dbg : out std_logic_vector(31 downto 0)
-
+		LEDR :  OUT  STD_LOGIC_VECTOR(9 DOWNTO 0)
 	);
 
 END CPU;
@@ -41,7 +31,7 @@ ARCHITECTURE bdf_type OF CPU IS
 
 SIGNAL	fetch_enable : std_logic := '1';
 SIGNAL	rom_enable : std_logic := '1';
-SIGNAL	fetch_reset : std_logic := '0';
+SIGNAL	fetch_reset : std_logic := '1';
 
 SIGNAL  fetch_stall : std_logic := '0';
 SIGNAL  fetch_flush : std_logic := '0';
@@ -97,15 +87,12 @@ SIGNAL	seg7_in4 :  STD_LOGIC_VECTOR(3 DOWNTO 0);
 
 BEGIN 
 
--- Component instantiation inside the concurrent statements
+-- Reset signals
 
-instruction_debug <= instruction;
-result_debug <= alu_result;
-pc_debug <= instruction_address;
-jmp_debug <= jmp_flag_alu;
-jmp_addr_debug <= jmp_dest_alu;
--- data_hazard_SDRAM_debug <= data_hazard_SDRAM;
-branching_hazard_debug <= jmp_flag_alu;
+fetch_reset <= RESET;
+
+
+-- Component instantiation inside the concurrent statements
 
 
 
@@ -183,7 +170,7 @@ PORT MAP(
 	);
 
 reg_inst:	entity work.reg 
-PORT MAP(r1dbg => r1dbg,
+PORT MAP(
 			w_enable => reg_write_flag_alu,
 			clk => MAX10_CLK1_50,
 			SW => SW,

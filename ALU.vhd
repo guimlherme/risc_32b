@@ -72,7 +72,7 @@ if rising_edge(clk) then
         mem_enable_flag_alu <= mem_enable_flag;
 
         -- Reg x0 is read only
-	    if reg_write_address_decoder = "0000" then
+	    if reg_write_address_decoder = "00000" then
 		    reg_write_flag_alu <= '0';
 	    end if;
 

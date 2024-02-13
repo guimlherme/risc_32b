@@ -20,7 +20,7 @@ end Fetch;
 
 architecture Fetch_a of Fetch is
 
-signal PC_counter: std_logic_vector(31 downto 0);
+signal PC_counter: std_logic_vector(31 downto 0) :=  (others=>'0');
 
 Begin
 
@@ -32,14 +32,14 @@ begin
 
 	
 	if reset='1' then
-		PC_counter<= (others=>'0');
+		PC_counter <= (others=>'0');
 	else
 		If rising_edge(clk) then
 			if en='1' and fetch_stall='0' and fetch_flush='0' then
 				If PC_jump_flag='1' then
 					PC_counter<=PC_jump_addr;
 				else
-					PC_counter<=std_logic_vector(unsigned(PC_counter)+1);
+					PC_counter<=std_logic_vector(unsigned(PC_counter)+4);
 				end if;
 			elsif fetch_flush='1' then
 				-- empty for now

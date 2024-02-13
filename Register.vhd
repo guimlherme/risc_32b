@@ -5,7 +5,7 @@ Use ieee.numeric_std.all ;
 
 
 entity reg is
-	port(r1dbg : out std_logic_vector(31 downto 0);
+	port(
 			w_enable :  in std_logic;
 			clk		:	in std_logic;
 			SW :  IN  STD_LOGIC_VECTOR(9 DOWNTO 0); -- board switches
@@ -32,8 +32,6 @@ begin
 
 Address_w_int <= to_integer(unsigned(Address_w)) ;
 
-r1dbg <= Data_reg(1); -- debug
- -- x0 is hard wired to zero;
 Display_out <= Data_reg(1)(15 downto 0);
 
 	acces_reg:process(clk)
