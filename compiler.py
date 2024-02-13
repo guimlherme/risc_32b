@@ -180,15 +180,7 @@ for line in Lines:
                 rs2 = int(words[3][1:])
                 opcode_number = int("0110011", 2)
                 bytecode = '{}{:05b}{:05b}{}{:05b}{:07b}'.format(funct7_map[opcode], rs2, rs1, funct3_map[opcode], rd, opcode_number)
-            # Pseudoinstructions
-            case "MOV":
-                rd = int(words[1][1:])
-                rs1 = int(words[2][1:])
-                imm = int(words[3])
-                imm = int2signedbin(imm, 12)
-                opcode_number = int("0010011", 2)
-                bytecode = '{:012b}{:05b}{}{:05b}{:07b}'.format(imm, rs1, funct3_map[opcode],rd, opcode_number)
-            
+                
 
 
         assert (len(bytecode) == 32)

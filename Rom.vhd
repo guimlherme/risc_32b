@@ -37,8 +37,8 @@ Address_int <= to_integer(unsigned(Address));
 		
 	-- 	if rising_edge(clk) then
 	-- 		if en='1'then
-				Data_out <= Data_Rom(Address_int) & Data_Rom(Address_int+4) &
-							Data_Rom(Address_int+8) & Data_Rom(Address_int+12);
+				Data_out <= Data_Rom(Address_int+12) & Data_Rom(Address_int+8) &
+							Data_Rom(Address_int+4) & Data_Rom(Address_int);
 		-- 	end if;
 
 		-- end if;	
