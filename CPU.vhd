@@ -11,6 +11,7 @@ ENTITY CPU IS
 	PORT
 	(
 		MAX10_CLK1_50 :  IN  STD_LOGIC; -- 50 MHz clock
+		RESET : IN STD_LOGIC;
 		SW :  IN  STD_LOGIC_VECTOR(9 DOWNTO 0);
 		HEX0 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
 		HEX1 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
@@ -18,18 +19,7 @@ ENTITY CPU IS
 		HEX3 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
 		HEX4 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
 		HEX5 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
-		LEDR :  OUT  STD_LOGIC_VECTOR(9 DOWNTO 0);
-
-		pc_debug : out std_logic_vector(7 downto 0);
-		instruction_debug : out std_logic_vector(22 downto 0);
-		result_debug : out std_logic_vector(7 downto 0);
-		-- data_hazard_SDRAM_debug : out std_logic;
-		branching_hazard_debug : out std_logic;
-		jmp_debug : out std_logic;
-		jmp_addr_debug : out std_logic_vector(7 downto 0);
-
-		r1dbg : out std_logic_vector(7 downto 0)
-
+		LEDR :  OUT  STD_LOGIC_VECTOR(9 DOWNTO 0)
 	);
 
 END CPU;
@@ -41,7 +31,7 @@ ARCHITECTURE bdf_type OF CPU IS
 
 SIGNAL	fetch_enable : std_logic := '1';
 SIGNAL	rom_enable : std_logic := '1';
-SIGNAL	fetch_reset : std_logic := '0';
+SIGNAL	fetch_reset : std_logic := '1';
 
 SIGNAL  fetch_stall : std_logic := '0';
 SIGNAL  fetch_flush : std_logic := '0';
@@ -52,28 +42,30 @@ SIGNAL  alu_flush : std_logic := '0';
 SIGNAL  memory_stall : std_logic := '0';
 --SIGNAL  memory_flush : std_logic := '0'; -- for future use
 
-SIGNAL	instruction_address : std_logic_vector(7 downto 0) := "00000000";
-SIGNAL	instruction_fetched : std_logic_vector(22 downto 0) := "10100000000000000000000";
-SIGNAL  instruction : std_logic_vector(22 downto 0) := "10100000000000000000000";
+constant NOP_instruction : std_logic_vector(31 downto 0) := "00000000000000000000000000010011";
+SIGNAL	instruction_address : std_logic_vector(31 downto 0) := x"00000000";
+SIGNAL	instruction_fetched : std_logic_vector(31 downto 0) := NOP_instruction;
+SIGNAL  instruction : std_logic_vector(31 downto 0) := NOP_instruction;
 
-SIGNAL	jmp_flag_decoder : std_logic;
-SIGNAL	jmp_dest_decoder :  std_logic_vector(7 downto 0);
+
 SIGNAL  jmp_flag_alu : std_logic;
-SIGNAL  jmp_dest_alu :  std_logic_vector(7 downto 0);
+SIGNAL  jmp_dest_alu :  std_logic_vector(31 downto 0);
 
-SIGNAL	reg_write_flag_decoder : std_logic;
-SIGNAL	reg_write_address_decoder : std_logic_vector(3 downto 0);
+SIGNAL	reg_write_address_decoder : std_logic_vector(4 downto 0);
 SIGNAL	reg_write_flag_alu : std_logic;
-SIGNAL	reg_write_address_alu : std_logic_vector(3 downto 0);
+SIGNAL	reg_write_address_alu : std_logic_vector(4 downto 0);
 
-SIGNAL	alu_reg_in1 : std_logic_vector(3 downto 0);
-SIGNAL	alu_reg_in2 : std_logic_vector(3 downto 0);
-SIGNAL	alu_immediate_in: std_logic_vector(7 downto 0);
-SIGNAL	alu_op: std_logic_vector(2 downto 0);
+SIGNAL	alu_reg_in1 : std_logic_vector(4 downto 0);
+SIGNAL	alu_reg_in2 : std_logic_vector(4 downto 0);
+SIGNAL	alu_immediate_in: std_logic_vector(31 downto 0);
+SIGNAL	alu_op: std_logic_vector(6 downto 0);
+SIGNAL  alu_funct3: std_logic_vector(2 downto 0);
+SIGNAL  alu_funct7: std_logic_vector(6 downto 0);
+SIGNAL	alu_pc: std_logic_vector(31 downto 0);
 
-SIGNAL	reg_data_out1 : std_logic_vector(7 downto 0);
-SIGNAL	reg_data_out2 : std_logic_vector(7 downto 0);
-SIGNAL	alu_result : std_logic_vector(7 downto 0);
+SIGNAL	reg_data_out1 : std_logic_vector(31 downto 0);
+SIGNAL	reg_data_out2 : std_logic_vector(31 downto 0);
+SIGNAL	alu_result : std_logic_vector(31 downto 0);
 SIGNAL	alu_zero : std_logic;
 
 
@@ -95,15 +87,14 @@ SIGNAL	seg7_in4 :  STD_LOGIC_VECTOR(3 DOWNTO 0);
 
 BEGIN 
 
+-- Reset signals
+
+fetch_reset <= RESET;
+
+
 -- Component instantiation inside the concurrent statements
 
-instruction_debug <= instruction;
-result_debug <= alu_result;
-pc_debug <= instruction_address;
-jmp_debug <= jmp_flag_alu;
-jmp_addr_debug <= jmp_dest_alu;
--- data_hazard_SDRAM_debug <= data_hazard_SDRAM;
-branching_hazard_debug <= jmp_flag_alu;
+
 
 pipeline_control_inst: entity work.pipeline_control
 port map (
@@ -125,9 +116,9 @@ PORT MAP(
 			reset => fetch_reset,
 			fetch_stall => fetch_stall,
 			fetch_flush => fetch_flush,
-			PC_jump_flag=> jmp_flag_alu,
-			PC_jump_addr=> jmp_dest_alu,
-		   	PC_out=> instruction_address);
+			PC_jump_flag => jmp_flag_alu,
+			PC_jump_addr => jmp_dest_alu,
+			PC_out => instruction_address);
 
 rom_inst:	entity work.rom 
 PORT MAP
@@ -136,23 +127,24 @@ PORT MAP
 			Address => instruction_address,
 			Data_out => instruction_fetched);
 
-instruction <= instruction_fetched when fetch_flush='0' else "10100000000000000000000";
+instruction <= instruction_fetched when fetch_flush='0' else NOP_instruction; -- #TODO: reorganize this
 
 decoder_inst: entity work.decoder
-    PORT MAP (
+PORT MAP (
 			clk => MAX10_CLK1_50,
 			instruction => instruction,
 			decoder_stall => decoder_stall,
 			decoder_flush => decoder_flush,
-			alu_zero => alu_zero,
-			jmp => jmp_flag_decoder,
-			jmp_dest => jmp_dest_decoder,
-			reg_write => reg_write_flag_decoder,
 			reg_write_address => reg_write_address_decoder,
 			alu_reg_in1 => alu_reg_in1,
 			alu_reg_in2 => alu_reg_in2,
 			alu_immediate_in => alu_immediate_in,
-			alu_op => alu_op);
+			alu_op => alu_op,
+			alu_funct3=> alu_funct3,
+			alu_funct7=> alu_funct7,
+			decoder_pc => instruction_address,
+			alu_pc => alu_pc
+		);
 
 
 
@@ -161,24 +153,24 @@ PORT MAP(
 			clk => MAX10_CLK1_50,
 			alu_stall => alu_stall,
         	alu_flush => alu_flush,
-			a => reg_data_out1, 
-			b => reg_data_out2,
-			c => alu_immediate_in, 
+			rs1 => reg_data_out1, 
+			rs2 => reg_data_out2,
+			imm => alu_immediate_in, 
 			op => alu_op, 
+			funct3 => alu_funct3,
+			funct7 => alu_funct7,
 			result_out => alu_result,
 			zero_flag => alu_zero,
-			jmp_flag_decoder => jmp_flag_decoder,
-			jmp_dest_decoder => jmp_dest_decoder,
+			alu_pc => alu_pc,
 			jmp_flag_alu => jmp_flag_alu,
 			jmp_dest_alu => jmp_dest_alu,
-			reg_write_flag_decoder => reg_write_flag_decoder,
 			reg_write_address_decoder => reg_write_address_decoder,
 			reg_write_flag_alu => reg_write_flag_alu,
 			reg_write_address_alu => reg_write_address_alu
 	);
 
 reg_inst:	entity work.reg 
-PORT MAP(r1dbg => r1dbg,
+PORT MAP(
 			w_enable => reg_write_flag_alu,
 			clk => MAX10_CLK1_50,
 			SW => SW,
