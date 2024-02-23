@@ -12,7 +12,7 @@ entity reg is
 			Address_w	:	in std_logic_vector(4 downto 0);
 			Address_r_1 :  in std_logic_vector(4 downto 0); --address of rs1
 			Address_r_2 :  in std_logic_vector(4 downto 0); --address of rs2
-			Data_in	:	in std_logic_vector(31 downto 0);
+			Data_in_mem	:	in std_logic_vector(31 downto 0);
 			Data_out_1:	out std_logic_vector(31 downto 0); -- value rs1 in ALU
 			Data_out_2:	out std_logic_vector(31 downto 0); -- value rs2 in ALU
 			Display_out: out std_logic_vector(15 downto 0) -- goes to the display
@@ -41,7 +41,7 @@ Display_out <= Data_reg(1)(15 downto 0);
 				if Address_w_int = 0 then -- x0 is hard wired to zero;
 					Data_reg(0) <= x"00000000";
 				else
-					Data_reg(Address_w_int) <= Data_in;
+					Data_reg(Address_w_int) <= Data_in_mem;
 				end if;
 			end if;
 			-- Data_reg(XXXXXX) <= SW(8 downto 1);

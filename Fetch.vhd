@@ -42,7 +42,7 @@ begin
 					PC_counter<=std_logic_vector(unsigned(PC_counter)+4);
 				end if;
 			elsif fetch_flush='1' then
-				-- empty for now
+				NULL; -- empty for now
 
 			end if;
 			

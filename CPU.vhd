@@ -40,6 +40,7 @@ SIGNAL  decoder_flush : std_logic := '0';
 SIGNAL  alu_stall : std_logic := '0';
 SIGNAL  alu_flush : std_logic := '0';
 SIGNAL  memory_stall : std_logic := '0';
+SIGNAL  data_hazard_SDRAM : std_logic := '0';
 --SIGNAL  memory_flush : std_logic := '0'; -- for future use
 
 constant NOP_instruction : std_logic_vector(31 downto 0) := "00000000000000000000000000010011";
@@ -68,6 +69,12 @@ SIGNAL	reg_data_out2 : std_logic_vector(31 downto 0);
 SIGNAL	alu_result : std_logic_vector(31 downto 0);
 SIGNAL	alu_zero : std_logic;
 
+SIGNAL  mem_enable_flag_alu : std_logic;
+SIGNAL  mem_address_alu : std_logic_vector(31 downto 0);
+SIGNAL  mem_funct3_alu : std_logic_vector(2 downto 0);
+SIGNAL  mem_mode_alu : std_logic;
+
+SIGNAL  reg_data_in_mem : std_logic_vector(31 downto 0);
 
 SIGNAL	zero :  STD_LOGIC;
 SIGNAL	one :  STD_LOGIC;
@@ -98,7 +105,7 @@ fetch_reset <= RESET;
 
 pipeline_control_inst: entity work.pipeline_control
 port map (
-  data_hazard_SDRAM     => '0', -- #TODO: fix this condition
+  data_hazard_SDRAM     => data_hazard_SDRAM,
   branching_hazard      => jmp_flag_alu,
   fetch_stall_command   => fetch_stall,
   decoder_stall_command => decoder_stall,
@@ -166,8 +173,26 @@ PORT MAP(
 			jmp_dest_alu => jmp_dest_alu,
 			reg_write_address_decoder => reg_write_address_decoder,
 			reg_write_flag_alu => reg_write_flag_alu,
-			reg_write_address_alu => reg_write_address_alu
+			reg_write_address_alu => reg_write_address_alu,
+			mem_enable_flag_alu => mem_enable_flag_alu,
+			mem_address_alu => mem_address_alu,
+			mem_funct3_alu => mem_funct3_alu,
+			mem_mode_alu => mem_mode_alu
 	);
+
+ram_inst:   entity work.ram
+PORT MAP(
+			rw       => mem_mode_alu,
+			en       => mem_enable_flag_alu,
+			clk	     => MAX10_CLK1_50,
+			rst      => RESET,
+			stall    => memory_stall,
+			funct3   => mem_funct3_alu,
+			Address	 => mem_address_alu,
+			Data_in	 => alu_result,
+			Data_out_mem => reg_data_in_mem,
+			mem_delayed => data_hazard_SDRAM
+			);
 
 reg_inst:	entity work.reg 
 PORT MAP(
@@ -177,7 +202,7 @@ PORT MAP(
 			Address_w => reg_write_address_alu,
 			Address_r_1 => alu_reg_in1,
 			Address_r_2 => alu_reg_in2,
-			Data_in => alu_result,
+			Data_in_mem => reg_data_in_mem,
 			Data_out_1 => reg_data_out1,
 			Data_out_2 => reg_data_out2,
 			Display_out => display_number);
