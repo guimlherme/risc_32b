@@ -10,6 +10,7 @@ entity decoder is
 		  
         instruction: in std_logic_vector(31 downto 0);
 		
+		reg_write_flag: out std_logic;
 		reg_write_address: out std_logic_vector(4 downto 0);
 		
 		alu_reg_in1: out std_logic_vector(4 downto 0);
@@ -74,7 +75,10 @@ begin
 	if rising_edge(clk) then
 		if decoder_stall='0' and decoder_flush='0' then
 
+			-- Default values
 			alu_pc <= decoder_pc;
+
+			reg_write_flag <= '0';
 			reg_write_address <= reg_dest;
 
 			alu_op <= opcode;
@@ -82,6 +86,42 @@ begin
 			alu_reg_in1 <= reg_in1;
 			alu_reg_in2 <= reg_in2;
 			alu_funct7 <= funct7;
+
+			-- Decode signals
+
+			case opcode is
+				when "0010011" => -- Operations with immediates
+					reg_write_flag <= '1';
+				
+				when "0110111" => -- LUI
+					reg_write_flag <= '1';
+				
+				when "0010111" => -- AUIPC
+					reg_write_flag <= '1';
+
+				when "0110011" => -- Operations with registers
+					reg_write_flag <= '1';
+					
+				
+				when "1101111" => -- JAL
+					reg_write_flag <= '1';
+				
+				when "1100111" => -- JALR
+					reg_write_flag <= '1';
+				
+				when "1100011" => -- branches
+					reg_write_flag <= '0';
+		
+				when "0000011" => -- loads
+					reg_write_flag <= '1'; -- Not the usual write
+					--mem_enable_flag <= '1';
+				
+				when "0100011" => -- stores
+					reg_write_flag <= '0';
+					--mem_enable_flag <= '1';
+
+				when others => NULL;
+			end case;
 
 			-- Decode immediate
 			-- #TODO: optimize funct7 by encoding it here

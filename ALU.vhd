@@ -20,6 +20,7 @@ entity ALU is
         jmp_flag_alu: out std_logic;
         jmp_dest_alu: out std_logic_vector(31 downto 0);
 
+        reg_write_flag_decoder: in std_logic;
         reg_write_address_decoder: in std_logic_vector(4 downto 0);
         reg_write_flag_alu: out std_logic;
         reg_write_address_alu: out std_logic_vector(4 downto 0);
@@ -38,7 +39,7 @@ signal result : std_logic_vector(31 downto 0);
 signal jmp_flag : std_logic;
 signal jmp_dest : std_logic_vector(31 downto 0);
 
-signal reg_write_flag : std_logic;
+-- signal reg_write_flag : std_logic;
 
 signal mem_enable_flag: std_logic;
 signal mem_address: std_logic_vector(31 downto 0);
@@ -67,7 +68,7 @@ if rising_edge(clk) then
         end if;
         result_out <= result;
 
-        reg_write_flag_alu <= reg_write_flag;
+        reg_write_flag_alu <= reg_write_flag_decoder;
         jmp_flag_alu <= jmp_flag;
         mem_enable_flag_alu <= mem_enable_flag;
 
@@ -125,14 +126,14 @@ begin
     jmp_dest <= (others => '-');
     jmp_flag <= '0';
     mem_enable_flag <= '0';
-    reg_write_flag <= '0';
+    -- reg_write_flag <= '0';
     mem_address <= (others => '-');
     mem_funct3 <= (others => '-');
     mem_mode <= '-';
 
     case op is
         when "0010011" => -- Operations with immediates
-            reg_write_flag <= '1';
+            -- reg_write_flag <= '1';
 
             if funct3="000" then -- ADDI
                 result <= std_logic_vector(signed_rs1 + signed_imm);
@@ -164,17 +165,17 @@ begin
         
         
         when "0110111" => -- LUI
-            reg_write_flag <= '1';
+            -- reg_write_flag <= '1';
             result <= imm;
         
 
         when "0010111" => -- AUIPC
-            reg_write_flag <= '1';
+            -- reg_write_flag <= '1';
             result <= std_logic_vector(signed_imm + signed_alu_pc);
 
         
         when "0110011" => -- Operations with registers
-            reg_write_flag <= '1';
+            -- reg_write_flag <= '1';
 
             if funct3="000" then
                 if funct7(5)='0' then -- ADD
@@ -210,13 +211,13 @@ begin
             
         
         when "1101111" => -- JAL
-            reg_write_flag <= '1';
+            -- reg_write_flag <= '1';
             jmp_flag <= '1';
             jmp_dest <= std_logic_vector(signed_alu_pc + signed_imm);
             result <= std_logic_vector(signed_alu_pc + 4);
         
         when "1100111" => -- JALR
-            reg_write_flag <= '1';
+            -- reg_write_flag <= '1';
             jmp_flag <= '1';
             jmp_dest <= std_logic_vector(signed_rs1 + signed_imm);
             jmp_dest(0) <= '0';
@@ -224,7 +225,7 @@ begin
             -- #TODO: add exception if jmp_dest % 4 == 0
         
         when "1100011" => -- branches
-            reg_write_flag <= '0';
+            -- reg_write_flag <= '0';
             jmp_dest <= std_logic_vector(signed_alu_pc + signed_imm);
             if funct3="000" then -- BEQ
                 if signed_rs1 = signed_rs2 then jmp_flag <= '1';
@@ -247,14 +248,14 @@ begin
             end if;
 
         when "0000011" => -- loads
-            reg_write_flag <= '1'; -- Not the usual write
+            -- reg_write_flag <= '1'; -- Not the usual write
             mem_address <= std_logic_vector(signed_rs1 + signed_imm);
             mem_funct3 <= funct3;
             mem_enable_flag <= '1';
             mem_mode <= '0'; -- read
         
         when "0100011" => -- stores
-            reg_write_flag <= '0';
+            -- reg_write_flag <= '0';
             mem_address <= std_logic_vector(signed_rs1 + signed_imm);
             mem_funct3 <= funct3;
             mem_enable_flag <= '1';

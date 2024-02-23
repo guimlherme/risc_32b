@@ -14,7 +14,10 @@ entity ram is
 			Address	:	in std_logic_vector(31 downto 0);
 			Data_in	:	in std_logic_vector(31 downto 0);
 			Data_out_mem:	out std_logic_vector(31 downto 0);
-			Data_out_alu:	out std_logic_vector(31 downto 0);
+			reg_write_flag_alu : in std_logic;
+			reg_write_flag_mem : out std_logic;
+			reg_write_address_alu : in std_logic_vector(5 downto 0);
+			reg_write_address_mem : out std_logic_vector(5 downto 0);
 			mem_delayed :   out std_logic
 			);
 end ram;
@@ -38,7 +41,7 @@ mem_delayed <= '0'; -- this memory made of registers is instant
 	acces_ram:process(rst, clk)
 		begin
 		
-		Data_out_alu <= Data_in;
+		Data_out_mem <= Data_in;
 		
 		if rst='1' then
 		
@@ -48,6 +51,12 @@ mem_delayed <= '0'; -- this memory made of registers is instant
 		
 		else
 			if rising_edge(clk) then
+				
+				if stall='0' then
+					reg_write_flag_mem <= reg_write_flag_alu;
+					reg_write_address_mem <= reg_write_address_alu;
+				end if;
+
 				if en='1' and stall='0' then
 					if(rw='1') then 
 						Data_out_mem <= (others => '0');

@@ -40,7 +40,7 @@ SIGNAL  decoder_flush : std_logic := '0';
 SIGNAL  alu_stall : std_logic := '0';
 SIGNAL  alu_flush : std_logic := '0';
 SIGNAL  memory_stall : std_logic := '0';
-SIGNAL  data_hazard_SDRAM : std_logic := '0';
+SIGNAL  mem_delayed : std_logic := '0';
 --SIGNAL  memory_flush : std_logic := '0'; -- for future use
 
 constant NOP_instruction : std_logic_vector(31 downto 0) := "00000000000000000000000000010011";
@@ -52,9 +52,12 @@ SIGNAL  instruction : std_logic_vector(31 downto 0) := NOP_instruction;
 SIGNAL  jmp_flag_alu : std_logic;
 SIGNAL  jmp_dest_alu :  std_logic_vector(31 downto 0);
 
+SIGNAL	reg_write_flag_decoder : std_logic;
 SIGNAL	reg_write_address_decoder : std_logic_vector(4 downto 0);
 SIGNAL	reg_write_flag_alu : std_logic;
 SIGNAL	reg_write_address_alu : std_logic_vector(4 downto 0);
+SIGNAL  reg_write_flag_mem : std_logic;
+SIGNAL  reg_write_address_mem : std_logic_vector(4 downto 0);
 
 SIGNAL	alu_reg_in1 : std_logic_vector(4 downto 0);
 SIGNAL	alu_reg_in2 : std_logic_vector(4 downto 0);
@@ -105,8 +108,12 @@ fetch_reset <= RESET;
 
 pipeline_control_inst: entity work.pipeline_control
 port map (
-  data_hazard_SDRAM     => data_hazard_SDRAM,
+  mem_delayed     => mem_delayed,
   branching_hazard      => jmp_flag_alu,
+  address_decoder_1 => alu_reg_in1,
+  address_decoder_2 => alu_reg_in1,
+  address_alu => reg_write_address_alu,
+  address_mem => reg_write_address_mem,
   fetch_stall_command   => fetch_stall,
   decoder_stall_command => decoder_stall,
   alu_stall_command     => alu_stall,
@@ -142,6 +149,7 @@ PORT MAP (
 			instruction => instruction,
 			decoder_stall => decoder_stall,
 			decoder_flush => decoder_flush,
+			reg_write_flag => reg_write_flag_decoder,
 			reg_write_address => reg_write_address_decoder,
 			alu_reg_in1 => alu_reg_in1,
 			alu_reg_in2 => alu_reg_in2,
@@ -171,6 +179,7 @@ PORT MAP(
 			alu_pc => alu_pc,
 			jmp_flag_alu => jmp_flag_alu,
 			jmp_dest_alu => jmp_dest_alu,
+			reg_write_flag_decoder => reg_write_flag_decoder,
 			reg_write_address_decoder => reg_write_address_decoder,
 			reg_write_flag_alu => reg_write_flag_alu,
 			reg_write_address_alu => reg_write_address_alu,
@@ -191,15 +200,19 @@ PORT MAP(
 			Address	 => mem_address_alu,
 			Data_in	 => alu_result,
 			Data_out_mem => reg_data_in_mem,
-			mem_delayed => data_hazard_SDRAM
+			reg_write_flag_alu => reg_write_flag_alu,
+			reg_write_flag_mem => reg_write_flag_mem,
+			reg_write_address_alu => reg_write_address_alu,
+			reg_write_address_mem => reg_write_address_mem,
+			mem_delayed => mem_delayed
 			);
 
 reg_inst:	entity work.reg 
 PORT MAP(
-			w_enable => reg_write_flag_alu,
+			w_enable => reg_write_flag_mem,
 			clk => MAX10_CLK1_50,
 			SW => SW,
-			Address_w => reg_write_address_alu,
+			Address_w => reg_write_address_mem,
 			Address_r_1 => alu_reg_in1,
 			Address_r_2 => alu_reg_in2,
 			Data_in_mem => reg_data_in_mem,
