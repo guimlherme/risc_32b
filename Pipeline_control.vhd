@@ -43,7 +43,7 @@ calculate_data_hazard_mem:process(address_mem, address_decoder_1, address_decode
 begin
     if (address_mem=address_decoder_1) or (address_mem=address_decoder_2) then
         data_hazard_mem <= '1';
-    elsif mem_delayed then
+    elsif mem_delayed='1' then
         data_hazard_mem <= '1';
     else
         data_hazard_mem <= '0';

@@ -16,8 +16,8 @@ entity ram is
 			Data_out_mem:	out std_logic_vector(31 downto 0);
 			reg_write_flag_alu : in std_logic;
 			reg_write_flag_mem : out std_logic;
-			reg_write_address_alu : in std_logic_vector(5 downto 0);
-			reg_write_address_mem : out std_logic_vector(5 downto 0);
+			reg_write_address_alu : in std_logic_vector(4 downto 0);
+			reg_write_address_mem : out std_logic_vector(4 downto 0);
 			mem_delayed :   out std_logic
 			);
 end ram;
@@ -41,58 +41,54 @@ mem_delayed <= '0'; -- this memory made of registers is instant
 	acces_ram:process(rst, clk)
 		begin
 		
-		Data_out_mem <= Data_in;
-		
 		if rst='1' then
 		
 			for k in ram'range loop
 				Data_Ram(k) <= (others=>'0');
 			end loop;
 		
-		else
-			if rising_edge(clk) then
-				
-				if stall='0' then
-					reg_write_flag_mem <= reg_write_flag_alu;
-					reg_write_address_mem <= reg_write_address_alu;
-				end if;
+		elsif rising_edge(clk) then
+			if stall='0' then
+				reg_write_flag_mem <= reg_write_flag_alu;
+				reg_write_address_mem <= reg_write_address_alu;
+			end if;
 
-				if en='1' and stall='0' then
-					if(rw='1') then 
-						Data_out_mem <= (others => '0');
-						if funct3="000" then -- LB
-							Data_out_mem(7 downto 0) <= Data_Ram(Address_int);
-							Data_out_mem(31 downto 8) <= (others => Data_Ram(Address_int)(7));
-						elsif funct3="001" then -- LH
-							Data_out_mem(15 downto 0) <= Data_Ram(Address_int+1) & Data_Ram(Address_int);
-							Data_out_mem(31 downto 16) <= (others => Data_Ram(Address_int+1)(7));
-						elsif funct3="010" then -- LW
-							Data_out_mem <= Data_Ram(Address_int+3) & Data_Ram(Address_int+2) &
-							Data_Ram(Address_int+1) & Data_Ram(Address_int);
-						elsif funct3="100" then -- LBU
-							Data_out_mem(7 downto 0) <= Data_Ram(Address_int);
-						elsif funct3="101" then -- LHU
-							Data_out_mem(15 downto 0) <= Data_Ram(Address_int+1) & Data_Ram(Address_int);
-						end if;
-					else
-						Data_Ram(Address_int+3) <= (others => '0');
-						Data_Ram(Address_int+2) <= (others => '0');
-						Data_Ram(Address_int+1) <= (others => '0');
-						Data_Ram(Address_int)   <= (others => '0');
-						if funct3="000" then -- SB
-							Data_Ram(Address_int)   <= Data_in(7 downto 0);
-						elsif funct3="001" then -- SH
-							Data_Ram(Address_int+1) <= Data_in(15 downto 8);
-							Data_Ram(Address_int)   <= Data_in(7 downto 0);
-						elsif funct3="010" then -- SW
-							Data_Ram(Address_int+3) <= Data_in(31 downto 24);
-							Data_Ram(Address_int+2) <= Data_in(23 downto 16);
-							Data_Ram(Address_int+1) <= Data_in(15 downto 8);
-							Data_Ram(Address_int)   <= Data_in(7 downto 0);
-						end if;
-					end if;
-				elsif en='0' and stall='0' then
+			if stall='0' then
+				if en='0' then
 					Data_out_mem <= Data_in;
+				elsif (rw='1') then 
+					Data_out_mem <= (others => '0');
+					if funct3="000" then -- LB
+						Data_out_mem(7 downto 0) <= Data_Ram(Address_int);
+						Data_out_mem(31 downto 8) <= (others => Data_Ram(Address_int)(7));
+					elsif funct3="001" then -- LH
+						Data_out_mem(15 downto 0) <= Data_Ram(Address_int+1) & Data_Ram(Address_int);
+						Data_out_mem(31 downto 16) <= (others => Data_Ram(Address_int+1)(7));
+					elsif funct3="010" then -- LW
+						Data_out_mem <= Data_Ram(Address_int+3) & Data_Ram(Address_int+2) &
+						Data_Ram(Address_int+1) & Data_Ram(Address_int);
+					elsif funct3="100" then -- LBU
+						Data_out_mem(7 downto 0) <= Data_Ram(Address_int);
+					elsif funct3="101" then -- LHU
+						Data_out_mem(15 downto 0) <= Data_Ram(Address_int+1) & Data_Ram(Address_int);
+					end if;
+				else
+					Data_out_mem <= (others => '-');
+					Data_Ram(Address_int+3) <= (others => '0');
+					Data_Ram(Address_int+2) <= (others => '0');
+					Data_Ram(Address_int+1) <= (others => '0');
+					Data_Ram(Address_int)   <= (others => '0');
+					if funct3="000" then -- SB
+						Data_Ram(Address_int)   <= Data_in(7 downto 0);
+					elsif funct3="001" then -- SH
+						Data_Ram(Address_int+1) <= Data_in(15 downto 8);
+						Data_Ram(Address_int)   <= Data_in(7 downto 0);
+					elsif funct3="010" then -- SW
+						Data_Ram(Address_int+3) <= Data_in(31 downto 24);
+						Data_Ram(Address_int+2) <= Data_in(23 downto 16);
+						Data_Ram(Address_int+1) <= Data_in(15 downto 8);
+						Data_Ram(Address_int)   <= Data_in(7 downto 0);
+					end if;
 				end if;
 			end if;
 		end if;
