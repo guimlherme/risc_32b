@@ -9,6 +9,18 @@
 #define FUNCT7_MAP_SIZE 3
 #define MAX_LINE_LENGTH 128
 
+
+// Define the endinanness of the output:
+// Possibilities:
+// LITTLE, MIXED, BIG  
+// MIXED corresponds to LITTLE in memory addresses and BIG inside the bytes
+//ENDIANNESS = MIXED;
+enum endianness_type{LITTLE = 0, MIXED = 1, BIG = 2};
+enum endianness_type ENDIANNESS = MIXED;
+
+
+
+
 // Function to get the funct3 code
 const int get_funct3(const char* opcode) {
     static const char* funct3_map[FUNCT3_MAP_SIZE][2] = {
@@ -47,7 +59,7 @@ int int2signedbin(int number, int digits) {
     if (number >= 0) {
         return number;
     } else {
-        int xor_mask = (1 << (digits - 1)) - 1; // mask with ones for bit inversion
+        int xor_mask = (1 << (digits)) - 1; // mask with ones for bit inversion
         int two_complement = (labs(number) ^ xor_mask) + 1; // 2's complements
         return two_complement;
     }
@@ -57,7 +69,8 @@ void byte2bits(char * bits, const int byte_in)
 {
     int i;
     for (i = 0; i <= 7; i++) {
-        bits[i] = ((byte_in >> (7-i)) & 1) + '0';
+        if (ENDIANNESS == MIXED)
+            bits[i] = ((byte_in >> (7-i)) & 1) + '0';
     }
 }
 
@@ -230,8 +243,8 @@ int main() {
             } else if (strcmp(opcode, "BEQ") == 0 || strcmp(opcode, "BNE") == 0 ||
                        strcmp(opcode, "BLT") == 0 || strcmp(opcode, "BGE") == 0 ||
                        strcmp(opcode, "BLTU") == 0 || strcmp(opcode, "BGEU") == 0) {
-                int rs1 = atoi(&words[1][1]);
-                int rs2 = atoi(&words[2][1]);
+                int rs2 = atoi(&words[1][1]);
+                int rs1 = atoi(&words[2][1]);
                 int imm = atoi(words[3]);
                 imm = int2signedbin(imm, 30);
                 int opcode_number = 0b1100011;
@@ -251,12 +264,12 @@ int main() {
     
             } else if (strcmp(opcode, "SB") == 0 || strcmp(opcode, "SH") == 0 ||
                        strcmp(opcode, "SW") == 0) {
-                int rs1 = atoi(&words[1][1]);
-                int rs2 = atoi(&words[2][1]);
+                int rs2 = atoi(&words[1][1]);
+                int rs1 = atoi(&words[2][1]);
                 int imm = atoi(words[3]);
                 imm = int2signedbin(imm, 12);
                 int opcode_number = 0b0100011;
-                bytecode = ((imm & 0x7F) << 25) | ((rs2 & 0x1F) << 20) | ((rs1 & 0x1F) << 15) | ((get_funct3(opcode) & 0x7) << 12) | ((imm & 0x1F) << 7) | (opcode_number & 0x7F);
+                bytecode = (((imm >> 5) & 0x7F) << 25) | ((rs2 & 0x1F) << 20) | ((rs1 & 0x1F) << 15) | ((get_funct3(opcode) & 0x7) << 12) | ((imm & 0x1F) << 7) | (opcode_number & 0x7F);
     
             } else if (strcmp(opcode, "ADDI") == 0 || strcmp(opcode, "SLTI") == 0 ||
                        strcmp(opcode, "SLTIU") == 0 || strcmp(opcode, "XORI") == 0 ||
@@ -284,8 +297,8 @@ int main() {
                        strcmp(opcode, "SRL") == 0 || strcmp(opcode, "SRA") == 0 ||
                        strcmp(opcode, "OR") == 0 || strcmp(opcode, "AND") == 0) {
                 int rd = atoi(&words[1][1]);
-                int rs1 = atoi(&words[2][1]);
-                int rs2 = atoi(&words[3][1]);
+                int rs2 = atoi(&words[2][1]);
+                int rs1 = atoi(&words[3][1]);
                 int opcode_number = 0b0110011;
                 bytecode = (get_funct7(opcode) & 0x7F) | ((rs2 & 0x1F) << 20) | ((rs1 & 0x1F) << 15) | ((get_funct3(opcode) & 0x7) << 12) | ((rd & 0x1F) << 7) | (opcode_number & 0x7F);
             }
