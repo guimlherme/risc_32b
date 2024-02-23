@@ -73,7 +73,7 @@ begin
 	
 end Process;
 
-process(PC_counter, instruction_fetched, next_data_flush)
+process(PC_counter, instruction_fetched, next_data_stall, next_data_flush, last_instruction, reset)
 begin
 	PC_out <= PC_counter;
 	if reset='1' then

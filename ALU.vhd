@@ -51,7 +51,7 @@ constant zeros : std_logic_vector(31 downto 0) := (others => '0');
 
 begin
 
-process(clk)
+process(clk, reset)
 begin
 if reset='1' then
     reg_write_address_alu <= (others => '-');

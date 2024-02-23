@@ -73,7 +73,7 @@ begin
 		alu_reg_in2 <= reg_in2;
 	end process decode_reg;
 
-	decode:process(clk)
+	decode:process(clk, reset)
 	begin
 	
 	if reset='1' then

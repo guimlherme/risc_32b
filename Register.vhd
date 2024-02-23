@@ -35,7 +35,7 @@ Address_w_int <= to_integer(unsigned(Address_w)) ;
 
 Display_out <= Data_reg(1)(15 downto 0);
 
-	acces_reg:process(clk)
+	acces_reg:process(clk, reset)
 		begin
 		if reset='1' then
 			Data_reg <= (others => (others => '0'));
