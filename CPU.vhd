@@ -30,7 +30,6 @@ ARCHITECTURE bdf_type OF CPU IS
 --Signal declarations
 
 SIGNAL	fetch_enable : std_logic := '1';
-SIGNAL	rom_enable : std_logic := '1';
 SIGNAL	fetch_reset : std_logic := '1';
 
 SIGNAL  fetch_stall : std_logic := '0';
@@ -45,7 +44,6 @@ SIGNAL  mem_delayed : std_logic := '0';
 
 constant NOP_instruction : std_logic_vector(31 downto 0) := "00000000000000000000000000010011";
 SIGNAL	instruction_address : std_logic_vector(31 downto 0) := x"00000000";
-SIGNAL	instruction_fetched : std_logic_vector(31 downto 0) := NOP_instruction;
 SIGNAL  instruction : std_logic_vector(31 downto 0) := NOP_instruction;
 
 
@@ -112,7 +110,11 @@ port map (
   branching_hazard      => jmp_flag_alu,
   address_decoder_1 => alu_reg_in1,
   address_decoder_2 => alu_reg_in1,
+  reg_write_flag_decoder => reg_write_flag_decoder,
+  address_decoder_write => reg_write_address_decoder,
+  reg_write_flag_alu => reg_write_flag_alu,
   address_alu => reg_write_address_alu,
+  reg_write_flag_mem => reg_write_flag_mem,
   address_mem => reg_write_address_mem,
   fetch_stall_command   => fetch_stall,
   decoder_stall_command => decoder_stall,
@@ -132,20 +134,14 @@ PORT MAP(
 			fetch_flush => fetch_flush,
 			PC_jump_flag => jmp_flag_alu,
 			PC_jump_addr => jmp_dest_alu,
-			PC_out => instruction_address);
+			PC_out => instruction_address,
+			Data_out => instruction);
 
-rom_inst:	entity work.rom 
-PORT MAP
-			(en	=> rom_enable,
-			clk => MAX10_CLK1_50,
-			Address => instruction_address,
-			Data_out => instruction_fetched);
-
-instruction <= instruction_fetched when fetch_flush='0' else NOP_instruction; -- #TODO: reorganize this
 
 decoder_inst: entity work.decoder
 PORT MAP (
 			clk => MAX10_CLK1_50,
+			reset => RESET,
 			instruction => instruction,
 			decoder_stall => decoder_stall,
 			decoder_flush => decoder_flush,
@@ -166,6 +162,7 @@ PORT MAP (
 alu_inst:	entity work.ALU 
 PORT MAP(
 			clk => MAX10_CLK1_50,
+			reset => RESET,
 			alu_stall => alu_stall,
         	alu_flush => alu_flush,
 			rs1 => reg_data_out1, 
@@ -211,6 +208,7 @@ reg_inst:	entity work.reg
 PORT MAP(
 			w_enable => reg_write_flag_mem,
 			clk => MAX10_CLK1_50,
+			reset => RESET,
 			SW => SW,
 			Address_w => reg_write_address_mem,
 			Address_r_1 => alu_reg_in1,

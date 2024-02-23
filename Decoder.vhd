@@ -5,6 +5,7 @@ use ieee.numeric_std.all;
 entity decoder is
     port (
         clk	:	in std_logic;
+		reset : in std_logic;
 		decoder_stall : in std_logic;
 		decoder_flush : in std_logic;
 		  
@@ -66,13 +67,21 @@ begin
 
 
 
-
+	decode_reg:process(instruction, reg_in1, reg_in2)
+	begin
+		alu_reg_in1 <= reg_in1;
+		alu_reg_in2 <= reg_in2;
+	end process decode_reg;
 
 	decode:process(clk)
 	begin
-
-
-	if rising_edge(clk) then
+	
+	if reset='1' then
+		alu_op <= NOP_instruction(6 downto 0);
+		reg_write_flag <= '0';
+		reg_write_address <= NOP_instruction(11 downto 7);
+	
+	elsif rising_edge(clk) then
 		if decoder_stall='0' and decoder_flush='0' then
 
 			-- Default values
@@ -83,8 +92,6 @@ begin
 
 			alu_op <= opcode;
 			alu_funct3 <= funct3;
-			alu_reg_in1 <= reg_in1;
-			alu_reg_in2 <= reg_in2;
 			alu_funct7 <= funct7;
 
 			-- Decode signals
@@ -123,6 +130,11 @@ begin
 				when others => NULL;
 			end case;
 
+			-- Reg x0 is read only
+			if reg_dest = "00000" then
+				reg_write_flag <= '0';
+			end if;
+
 			-- Decode immediate
 			-- #TODO: optimize funct7 by encoding it here
 			case opcode is
@@ -160,6 +172,10 @@ begin
 
 		elsif decoder_flush='1' then
 			alu_op <= NOP_instruction(6 downto 0);
+			alu_immediate_in <= (others => '-');
+			alu_funct3 <= (others => '-');
+			alu_funct7 <= (others => '-');
+			reg_write_flag <= '0';
 			reg_write_address <= NOP_instruction(11 downto 7);
 		end if;
 	end if;

@@ -17,7 +17,7 @@ begin
     -- clock control
     clk <= not clk after 10 ps;
 
-    -- radix16 instantiation 
+    -- CPU instantiation 
     UUT : entity work.CPU port map(MAX10_CLK1_50 => clk,
     RESET => reset,
     SW => (others => '0'),
@@ -39,6 +39,8 @@ begin
     wait until rising_edge(clk);
 
     reset <= '0';
+    enable <= '1';
+
     wait for 1 hr;
     end process ;
 end testbench_cpu;

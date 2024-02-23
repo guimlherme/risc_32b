@@ -5,6 +5,7 @@ use ieee.numeric_std.all;
 entity ALU is
     port (
         clk: in std_logic;
+        reset: in std_logic;
         alu_stall: in std_logic;
         alu_flush: in std_logic;
 
@@ -52,7 +53,19 @@ begin
 
 process(clk)
 begin
-if rising_edge(clk) then
+if reset='1' then
+    reg_write_address_alu <= (others => '-');
+    jmp_dest_alu <= (others => '-');
+    mem_address_alu <= (others => '-');
+    mem_funct3_alu <= (others => '-');
+    mem_mode_alu <= '-';
+    zero_flag <= '-';
+
+    reg_write_flag_alu <= '0';
+    jmp_flag_alu <= '0';
+    mem_enable_flag_alu <= '0';
+
+elsif rising_edge(clk) then
 
     if alu_stall='0' and alu_flush='0' then
         reg_write_address_alu <= reg_write_address_decoder;
@@ -71,11 +84,6 @@ if rising_edge(clk) then
         reg_write_flag_alu <= reg_write_flag_decoder;
         jmp_flag_alu <= jmp_flag;
         mem_enable_flag_alu <= mem_enable_flag;
-
-        -- Reg x0 is read only
-	    if reg_write_address_decoder = "00000" then
-		    reg_write_flag_alu <= '0';
-	    end if;
 
     elsif alu_flush='1' then
 
@@ -260,6 +268,7 @@ begin
             mem_funct3 <= funct3;
             mem_enable_flag <= '1';
             mem_mode <= '1'; -- write
+            result <= rs2;
         when others => NULL;
     end case;
 

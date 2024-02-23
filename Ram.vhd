@@ -37,7 +37,7 @@ begin
 Address_int <= to_integer(unsigned(Address(11 downto 0)));
 mem_delayed <= '0'; -- this memory made of registers is instant
 
--- rw='1' alors lecture
+-- rw='1' means write
 	acces_ram:process(rst, clk)
 		begin
 		
@@ -56,7 +56,7 @@ mem_delayed <= '0'; -- this memory made of registers is instant
 			if stall='0' then
 				if en='0' then
 					Data_out_mem <= Data_in;
-				elsif (rw='1') then 
+				elsif (rw='0') then 
 					Data_out_mem <= (others => '0');
 					if funct3="000" then -- LB
 						Data_out_mem(7 downto 0) <= Data_Ram(Address_int);
