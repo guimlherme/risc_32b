@@ -30,7 +30,6 @@ Address_int <= to_integer(unsigned(Address(11 downto 0)));
 
 -- Code here
 
-
 Data_Rom(0) <= "00010011";
 Data_Rom(1) <= "00000000";
 Data_Rom(2) <= "00000000";
@@ -65,7 +64,7 @@ Data_Rom(30) <= "00000000";
 Data_Rom(31) <= "00000000";
 Data_Rom(32) <= "11101111";
 Data_Rom(33) <= "11110000";
-Data_Rom(34) <= "01011111";
+Data_Rom(34) <= "10011111";
 Data_Rom(35) <= "11111111";
 Data_Rom(36) <= "00010011";
 Data_Rom(37) <= "00000000";
@@ -155,9 +154,6 @@ Data_Rom(120) <= "11100111";
 Data_Rom(121) <= "10000000";
 Data_Rom(122) <= "00000000";
 Data_Rom(123) <= "00000000";
-
-
-
 
 
 

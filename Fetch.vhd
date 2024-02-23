@@ -27,8 +27,8 @@ signal PC_counter: std_logic_vector(31 downto 0) :=  (others=>'0');
 signal PC_counter_plus_4: std_logic_vector(31 downto 0);
 signal PC_counter_next: std_logic_vector(31 downto 0);
 signal instruction_fetched: std_logic_vector(31 downto 0);
-signal next_data_flush: std_logic := '0';
-signal next_data_stall: std_logic := '0';
+signal last_data_flush: std_logic := '0';
+signal last_data_stall: std_logic := '0';
 signal last_instruction: std_logic_vector(31 downto 0);
 
 Begin
@@ -57,30 +57,34 @@ begin
 	
 	if reset='1' then
 		PC_counter <= (others=>'0');
-		next_data_flush <= '0';
+		last_data_flush <= '0';
 	else
 		If rising_edge(clk) then
 			if en='1' and fetch_stall='0' and fetch_flush='0' then
 				PC_counter <= PC_counter_next;
 			end if;
+
+			if last_data_stall='0' and fetch_stall='1' then
+				last_instruction <= instruction_fetched;
+			end if;
 			
-			next_data_flush <= fetch_flush;
-			next_data_stall <= fetch_stall;
-			last_instruction <= instruction_fetched;
+			last_data_flush <= fetch_flush;
+			last_data_stall <= fetch_stall;
+
 		end if;
 		
 	end if;
 	
 end Process;
 
-process(PC_counter, instruction_fetched, next_data_stall, next_data_flush, last_instruction, reset)
+process(PC_counter, instruction_fetched, last_data_stall, last_data_flush, last_instruction, reset)
 begin
 	PC_out <= PC_counter;
 	if reset='1' then
 		Data_out <= NOP_instruction;
-	elsif next_data_flush='1' then
+	elsif last_data_flush='1' then
 		Data_out <= NOP_instruction;
-	elsif next_data_stall='1' then
+	elsif last_data_stall='1' then
 		Data_out <= last_instruction;
 	else 
 		Data_out <= instruction_fetched;
