@@ -172,6 +172,15 @@ int main() {
             token = strtok(NULL, " ");
         }
 
+        // Convert assembly format
+        char *parenthesis = strchr(words[2], '(');
+        if (parenthesis != NULL) {
+            words[3] = words[2];
+            words[2] = &parenthesis[1];
+            *parenthesis = '\0'; // Remove parenthesis
+            words[2][strlen(words[2]) - 1] = '\0'; // Remove parenthesis
+        }
+
         // Get the opcode
         char *opcode = words[0];
         if (strcmp(opcode, "") == 0) {
