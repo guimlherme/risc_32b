@@ -187,9 +187,9 @@ begin
 
             if funct3="000" then
                 if funct7(5)='0' then -- ADD
-                    result <= std_logic_vector(signed_rs1 + signed_rs2);
+                    result <= std_logic_vector(signed_rs2 + signed_rs1);
                 else -- SUB
-                    result <= std_logic_vector(signed_rs1 - signed_rs2); -- #TODO: optimize SUB
+                    result <= std_logic_vector(signed_rs2 - signed_rs1); -- #TODO: optimize SUB
                 end if;
 
             elsif funct3="010" then -- SLT
