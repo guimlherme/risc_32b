@@ -82,23 +82,14 @@ begin
         memory_stall_command <= '1'; -- Maybe memory flush?
     end if;
 
-    if data_hazard_mem = '1' then
+    if data_hazard_mem = '1' or data_hazard_alu = '1' or data_hazard_decoder = '1' then
         fetch_stall_command <= '1';
         decoder_flush_command <= '1';
     end if;
 
-    if data_hazard_alu = '1' then
-        fetch_stall_command <= '1';
-        decoder_flush_command <= '1';
-    end if;
-
-    if data_hazard_decoder = '1' then
-        fetch_stall_command <= '1';
-        decoder_flush_command <= '1';
-    end if;
     
     if branching_hazard = '1' then
-        -- fetch_flush_command <= '1'; -- no need
+        fetch_stall_command <= '0';
         decoder_flush_command <= '1';
         alu_flush_command <= '1';
     end if;

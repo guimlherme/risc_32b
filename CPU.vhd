@@ -109,7 +109,7 @@ port map (
   mem_delayed     => mem_delayed,
   branching_hazard      => jmp_flag_alu,
   address_decoder_1 => alu_reg_in1,
-  address_decoder_2 => alu_reg_in1,
+  address_decoder_2 => alu_reg_in2,
   reg_write_flag_decoder => reg_write_flag_decoder,
   address_decoder_write => reg_write_address_decoder,
   reg_write_flag_alu => reg_write_flag_alu,

@@ -298,7 +298,7 @@ int main() {
                 // Ensure imm >= for shifts
                 assert(imm >= 0);
                 int opcode_number = 0b0010011;
-                bytecode = (get_funct7(opcode) & 0x7F) | ((imm & 0x1F) << 7) | ((rs1 & 0x1F) << 12) | ((get_funct3(opcode) & 0x7) << 17) | ((rd & 0x1F) << 20) | ((opcode_number & 0x7F) << 25);
+                bytecode = ((get_funct7(opcode) & 0x7F) << 25) | ((imm & 0x1F) << 7) | ((rs1 & 0x1F) << 12) | ((get_funct3(opcode) & 0x7) << 17) | ((rd & 0x1F) << 20) | ((opcode_number & 0x7F) << 25);
     
             } else if (strcmp(opcode, "ADD") == 0 || strcmp(opcode, "SUB") == 0 ||
                        strcmp(opcode, "SLL") == 0 || strcmp(opcode, "SLT") == 0 ||
@@ -306,10 +306,10 @@ int main() {
                        strcmp(opcode, "SRL") == 0 || strcmp(opcode, "SRA") == 0 ||
                        strcmp(opcode, "OR") == 0 || strcmp(opcode, "AND") == 0) {
                 int rd = atoi(&words[1][1]);
-                int rs2 = atoi(&words[2][1]);
-                int rs1 = atoi(&words[3][1]);
+                int rs1 = atoi(&words[2][1]);
+                int rs2 = atoi(&words[3][1]);
                 int opcode_number = 0b0110011;
-                bytecode = (get_funct7(opcode) & 0x7F) | ((rs2 & 0x1F) << 20) | ((rs1 & 0x1F) << 15) | ((get_funct3(opcode) & 0x7) << 12) | ((rd & 0x1F) << 7) | (opcode_number & 0x7F);
+                bytecode = ((get_funct7(opcode) & 0x7F) << 25) | ((rs2 & 0x1F) << 20) | ((rs1 & 0x1F) << 15) | ((get_funct3(opcode) & 0x7) << 12) | ((rd & 0x1F) << 7) | (opcode_number & 0x7F);
             }
         }
         
