@@ -196,7 +196,7 @@ PORT MAP(
 			funct3   => mem_funct3_alu,
 			Address	 => mem_address_alu,
 			Data_in	 => alu_result,
-			Data_out_mem => reg_data_in_mem,
+			Data_out => reg_data_in_mem,
 			reg_write_flag_alu => reg_write_flag_alu,
 			reg_write_flag_mem => reg_write_flag_mem,
 			reg_write_address_alu => reg_write_address_alu,
