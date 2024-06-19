@@ -10,16 +10,17 @@ LIBRARY work;
 ENTITY CPU IS 
 	PORT
 	(
-		MAX10_CLK1_50 :  IN  STD_LOGIC; -- 50 MHz clock
+		CLK :  IN  STD_LOGIC; -- 50 MHz clock
 		RESET : IN STD_LOGIC;
 		SW :  IN  STD_LOGIC_VECTOR(9 DOWNTO 0);
-		HEX0 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
-		HEX1 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
-		HEX2 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
-		HEX3 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
-		HEX4 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
-		HEX5 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
-		LEDR :  OUT  STD_LOGIC_VECTOR(9 DOWNTO 0)
+		REG_OUT : OUT STD_LOGIC_VECTOR(15 DOWNTO 0)
+		-- HEX0 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
+		-- HEX1 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
+		-- HEX2 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
+		-- HEX3 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
+		-- HEX4 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
+		-- HEX5 :  OUT  STD_LOGIC_VECTOR(7 DOWNTO 0);
+		-- LEDR :  OUT  STD_LOGIC_VECTOR(9 DOWNTO 0)
 	);
 
 END CPU;
@@ -128,7 +129,7 @@ port map (
 fetch_inst:	entity work.Fetch 
 PORT MAP(
 			en => fetch_enable,
-			clk => MAX10_CLK1_50,
+			clk => CLK,
 			reset => fetch_reset,
 			fetch_stall => fetch_stall,
 			fetch_flush => fetch_flush,
@@ -140,7 +141,7 @@ PORT MAP(
 
 decoder_inst: entity work.decoder
 PORT MAP (
-			clk => MAX10_CLK1_50,
+			clk => CLK,
 			reset => RESET,
 			instruction => instruction,
 			decoder_stall => decoder_stall,
@@ -161,7 +162,7 @@ PORT MAP (
 
 alu_inst:	entity work.ALU 
 PORT MAP(
-			clk => MAX10_CLK1_50,
+			clk => CLK,
 			reset => RESET,
 			alu_stall => alu_stall,
         	alu_flush => alu_flush,
@@ -190,7 +191,7 @@ ram_inst:   entity work.ram
 PORT MAP(
 			rw       => mem_mode_alu,
 			en       => mem_enable_flag_alu,
-			clk	     => MAX10_CLK1_50,
+			clk	     => CLK,
 			rst      => RESET,
 			stall    => memory_stall,
 			funct3   => mem_funct3_alu,
@@ -207,7 +208,7 @@ PORT MAP(
 reg_inst:	entity work.reg 
 PORT MAP(
 			w_enable => reg_write_flag_mem,
-			clk => MAX10_CLK1_50,
+			clk => CLK,
 			reset => RESET,
 			SW => SW,
 			Address_w => reg_write_address_mem,
@@ -218,70 +219,70 @@ PORT MAP(
 			Data_out_2 => reg_data_out2,
 			Display_out => display_number);
 
-
+REG_OUT <= display_number;
 
 
 -- LED display components
 
-b2v_inst : entity work.seg7_lut
-PORT MAP(iDIG => seg7_in0,
-		 oSEG => HEX_out4(6 DOWNTO 0));
+-- b2v_inst : entity work.seg7_lut
+-- PORT MAP(iDIG => seg7_in0,
+-- 		 oSEG => HEX_out4(6 DOWNTO 0));
 
 
-b2v_inst1 : entity work.seg7_lut
-PORT MAP(iDIG => seg7_in1,
-		 oSEG => HEX_out3(6 DOWNTO 0));
-
-
-
-b2v_inst2 : entity work.seg7_lut
-PORT MAP(iDIG => seg7_in2,
-		 oSEG => HEX_out2(6 DOWNTO 0));
-
-
-b2v_inst3 : entity work.seg7_lut
-PORT MAP(iDIG => seg7_in3,
-		 oSEG => HEX_out1(6 DOWNTO 0));
-
-
-b2v_inst4 : entity work.seg7_lut
-PORT MAP(iDIG => seg7_in4,
-		 oSEG => HEX_out0(6 DOWNTO 0));
-
-
-b2v_inst5 : entity work.dig2dec
-PORT MAP(vol => display_number,
-		 seg0 => seg7_in4,
-		 seg1 => seg7_in3,
-		 seg2 => seg7_in2,
-		 seg3 => seg7_in1,
-		 seg4 => seg7_in0);
-
-
-HEX0 <= HEX_out0;
-HEX1 <= HEX_out1;
-HEX2 <= HEX_out2;
-HEX3 <= HEX_out3;
-HEX4 <= HEX_out4;
-HEX5(7) <= one;
-HEX5(6) <= one;
-HEX5(5) <= one;
-HEX5(4) <= one;
-HEX5(3) <= one;
-HEX5(2) <= one;
-HEX5(1) <= one;
-HEX5(0) <= one;
-
-zero <= '0';
-one <= '1';
-HEX_out0(7) <= '1';
-HEX_out1(7) <= '1';
-HEX_out2(7) <= '1';
-HEX_out3(7) <= '1';
-HEX_out4(7) <= '1';
+-- b2v_inst1 : entity work.seg7_lut
+-- PORT MAP(iDIG => seg7_in1,
+-- 		 oSEG => HEX_out3(6 DOWNTO 0));
 
 
 
-LEDR <= SW;
+-- b2v_inst2 : entity work.seg7_lut
+-- PORT MAP(iDIG => seg7_in2,
+-- 		 oSEG => HEX_out2(6 DOWNTO 0));
+
+
+-- b2v_inst3 : entity work.seg7_lut
+-- PORT MAP(iDIG => seg7_in3,
+-- 		 oSEG => HEX_out1(6 DOWNTO 0));
+
+
+-- b2v_inst4 : entity work.seg7_lut
+-- PORT MAP(iDIG => seg7_in4,
+-- 		 oSEG => HEX_out0(6 DOWNTO 0));
+
+
+-- b2v_inst5 : entity work.dig2dec
+-- PORT MAP(vol => display_number,
+-- 		 seg0 => seg7_in4,
+-- 		 seg1 => seg7_in3,
+-- 		 seg2 => seg7_in2,
+-- 		 seg3 => seg7_in1,
+-- 		 seg4 => seg7_in0);
+
+
+-- HEX0 <= HEX_out0;
+-- HEX1 <= HEX_out1;
+-- HEX2 <= HEX_out2;
+-- HEX3 <= HEX_out3;
+-- HEX4 <= HEX_out4;
+-- HEX5(7) <= one;
+-- HEX5(6) <= one;
+-- HEX5(5) <= one;
+-- HEX5(4) <= one;
+-- HEX5(3) <= one;
+-- HEX5(2) <= one;
+-- HEX5(1) <= one;
+-- HEX5(0) <= one;
+
+-- zero <= '0';
+-- one <= '1';
+-- HEX_out0(7) <= '1';
+-- HEX_out1(7) <= '1';
+-- HEX_out2(7) <= '1';
+-- HEX_out3(7) <= '1';
+-- HEX_out4(7) <= '1';
+
+
+
+-- LEDR <= SW;
 
 END bdf_type;
