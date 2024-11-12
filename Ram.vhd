@@ -20,7 +20,20 @@ entity ram is
 			reg_write_flag_fp_mem : out std_logic;
 			reg_write_address_alu : in std_logic_vector(4 downto 0);
 			reg_write_address_mem : out std_logic_vector(4 downto 0);
-			mem_delayed :   out std_logic
+			mem_delayed :   out std_logic;
+
+			accelerator_addr1 : in std_logic_vector(31 downto 0);
+			accelerator_data1 : out std_logic_vector(31 downto 0);
+			accelerator_addr2 : in std_logic_vector(31 downto 0);
+			accelerator_data2 : out std_logic_vector(31 downto 0);
+			accelerator_addr3 : in std_logic_vector(31 downto 0);
+			accelerator_data3 : out std_logic_vector(31 downto 0);
+			accelerator_addr4 : in std_logic_vector(31 downto 0);
+			accelerator_data4 : out std_logic_vector(31 downto 0);
+
+			accelerator_write  : in std_logic;
+			accelerator_addrin : in std_logic_vector(31 downto 0);
+			accelerator_datain : in std_logic_vector(31 downto 0)
 			);
 end ram;
 
@@ -57,7 +70,18 @@ memory_inst: entity work.memory
 	clk => clk,
 	Address => Address_int,
 	Data_in => Data_mem_in,
-	Data_out => Data_mem_out
+	Data_out => Data_mem_out,
+	accelerator_addr1 => accelerator_addr1,
+	accelerator_data1 => accelerator_data1,
+	accelerator_addr2 => accelerator_addr2,
+	accelerator_data2 => accelerator_data2,
+	accelerator_addr3 => accelerator_addr3,
+	accelerator_data3 => accelerator_data3,
+	accelerator_addr4 => accelerator_addr4,
+	accelerator_data4 => accelerator_data4,
+	accelerator_write  => accelerator_write,
+	accelerator_addrin => accelerator_addrin,
+	accelerator_datain => accelerator_datain
 	);
 
 update_controls:process(clk)

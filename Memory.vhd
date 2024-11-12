@@ -15,7 +15,20 @@ entity memory is
 			clk		:	in std_logic;
 			Address	:	in natural;
 			Data_in	:	in std_logic_vector(31 downto 0);
-			Data_out:	out std_logic_vector(31 downto 0)
+			Data_out:	out std_logic_vector(31 downto 0);
+
+			accelerator_addr1 : in std_logic_vector(31 downto 0);
+			accelerator_data1 : out std_logic_vector(31 downto 0);
+			accelerator_addr2 : in std_logic_vector(31 downto 0);
+			accelerator_data2 : out std_logic_vector(31 downto 0);
+			accelerator_addr3 : in std_logic_vector(31 downto 0);
+			accelerator_data3 : out std_logic_vector(31 downto 0);
+			accelerator_addr4 : in std_logic_vector(31 downto 0);
+			accelerator_data4 : out std_logic_vector(31 downto 0);
+
+			accelerator_write  : in std_logic;
+			accelerator_addrin : in std_logic_vector(31 downto 0);
+			accelerator_datain : in std_logic_vector(31 downto 0)
 	);
 end memory;
 
@@ -51,10 +64,18 @@ begin
 
 Address_4bytes <= Address / 4;
 
+accelerator_data1 <= Data_Ram(to_integer(unsigned(accelerator_addr1))/4);
+accelerator_data2 <= Data_Ram(to_integer(unsigned(accelerator_addr2))/4);
+accelerator_data3 <= Data_Ram(to_integer(unsigned(accelerator_addr3))/4);
+accelerator_data4 <= Data_Ram(to_integer(unsigned(accelerator_addr4))/4);
+
 -- rw='1' means write
 	acces_ram:process(clk)
 		begin
 		if rising_edge(clk) then
+			if accelerator_write='1' then
+				Data_Ram(to_integer(unsigned(accelerator_addrin))/4) <= accelerator_datain;
+			end if;
 			if en='1' then
 				if rw='1' then
 					Data_Ram(Address_4bytes) <= Data_in;

@@ -60,6 +60,6 @@ def binary_to_str(binary_file_path, str_file_path):
 
 
 if __name__ == "__main__":
-    binary_file = "input.bin"
+    binary_file = "accelerated.out"
     str_file = "output.txt"
     binary_to_str(binary_file, str_file)

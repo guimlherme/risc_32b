@@ -56,7 +56,19 @@ rom_inst: entity work.memory
 	clk => clk,
 	Address => PC_counter_next_natural,
 	Data_in => (others => '0'),
-	Data_out => instruction_fetched
+	Data_out => instruction_fetched,
+
+	accelerator_addr1 => (others => '0'),
+	accelerator_data1 => open,
+	accelerator_addr2 => (others => '0'),
+	accelerator_data2 => open,
+	accelerator_addr3 => (others => '0'),
+	accelerator_data3 => open,
+	accelerator_addr4 => (others => '0'),
+	accelerator_data4 => open,
+	accelerator_write  => '0',
+	accelerator_addrin => (others => '0'),
+	accelerator_datain => (others => '0')
 );
 
 Process (clk, reset)

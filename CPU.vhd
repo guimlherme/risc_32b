@@ -83,19 +83,23 @@ SIGNAL  mem_mode_alu : std_logic;
 
 SIGNAL  reg_data_in_mem : std_logic_vector(31 downto 0);
 
-SIGNAL	zero :  STD_LOGIC;
-SIGNAL	one :  STD_LOGIC;
+SIGNAL accelerator_en : std_logic;
+SIGNAL accelerator_imm: std_logic_vector(31 downto 0);
+SIGNAL accelerator_funct3: std_logic_vector(2 downto 0);
+
+SIGNAL accelerator_addr1 : std_logic_vector(31 downto 0);
+SIGNAL accelerator_data1 : std_logic_vector(31 downto 0);
+SIGNAL accelerator_addr2 : std_logic_vector(31 downto 0);
+SIGNAL accelerator_data2 : std_logic_vector(31 downto 0);
+SIGNAL accelerator_addr3 : std_logic_vector(31 downto 0);
+SIGNAL accelerator_data3 : std_logic_vector(31 downto 0);
+SIGNAL accelerator_addr4 : std_logic_vector(31 downto 0);
+SIGNAL accelerator_data4 : std_logic_vector(31 downto 0);
+SIGNAL accelerator_write  : std_logic;
+SIGNAL accelerator_addrin : std_logic_vector(31 downto 0);
+SIGNAL accelerator_datain : std_logic_vector(31 downto 0);
+
 SIGNAL	display_number: STD_LOGIC_VECTOR(15 downto 0);
-SIGNAL	HEX_out0 :  STD_LOGIC_VECTOR(7 DOWNTO 0);
-SIGNAL	HEX_out1 :  STD_LOGIC_VECTOR(7 DOWNTO 0);
-SIGNAL	HEX_out2 :  STD_LOGIC_VECTOR(7 DOWNTO 0);
-SIGNAL	HEX_out3 :  STD_LOGIC_VECTOR(7 DOWNTO 0);
-SIGNAL	HEX_out4 :  STD_LOGIC_VECTOR(7 DOWNTO 0);
-SIGNAL	seg7_in0 :  STD_LOGIC_VECTOR(3 DOWNTO 0);
-SIGNAL	seg7_in1 :  STD_LOGIC_VECTOR(3 DOWNTO 0);
-SIGNAL	seg7_in2 :  STD_LOGIC_VECTOR(3 DOWNTO 0);
-SIGNAL	seg7_in3 :  STD_LOGIC_VECTOR(3 DOWNTO 0);
-SIGNAL	seg7_in4 :  STD_LOGIC_VECTOR(3 DOWNTO 0);
 
 
 
@@ -196,8 +200,31 @@ PORT MAP(
 			mem_enable_flag_alu => mem_enable_flag_alu,
 			mem_address_alu => mem_address_alu,
 			mem_funct3_alu => mem_funct3_alu,
-			mem_mode_alu => mem_mode_alu
+			mem_mode_alu => mem_mode_alu,
+			accelerator_en => accelerator_en,
+			accelerator_imm => accelerator_imm,
+        	accelerator_funct3 => accelerator_funct3
 	);
+
+accelerator_inst: entity work.accelerator
+ port map(
+	clk => clk,
+	reset => reset,
+	enable => accelerator_en,
+	funct3 => accelerator_funct3,
+	imm => accelerator_imm,
+	addr1 => accelerator_addr1,
+	data1 => accelerator_data1,
+	addr2 => accelerator_addr2,
+	data2 => accelerator_data2,
+	addr3 => accelerator_addr3,
+	data3 => accelerator_data3,
+	addr4 => accelerator_addr4,
+	data4 => accelerator_data4,
+	mem_write => accelerator_write,
+	addr_out => accelerator_addrin,
+	data_out => accelerator_datain
+);
 
 ram_inst:   entity work.ram
 PORT MAP(
@@ -216,7 +243,18 @@ PORT MAP(
 			reg_write_flag_fp_mem => reg_write_flag_fp_mem,
 			reg_write_address_alu => reg_write_address_alu,
 			reg_write_address_mem => reg_write_address_mem,
-			mem_delayed => mem_delayed
+			mem_delayed => mem_delayed,
+			accelerator_addr1 => accelerator_addr1,
+			accelerator_data1 => accelerator_data1,
+			accelerator_addr2 => accelerator_addr2,
+			accelerator_data2 => accelerator_data2,
+			accelerator_addr3 => accelerator_addr3,
+			accelerator_data3 => accelerator_data3,
+			accelerator_addr4 => accelerator_addr4,
+			accelerator_data4 => accelerator_data4,
+			accelerator_write => accelerator_write,
+			accelerator_addrin => accelerator_addrin,
+			accelerator_datain => accelerator_datain
 			);
 
 reg_inst:	entity work.reg 
@@ -256,68 +294,5 @@ PORT MAP(
 			Data_out_2 => reg_data_out_fp2,
 			Display_out => display_number);
 
-
--- LED display components
-
--- b2v_inst : entity work.seg7_lut
--- PORT MAP(iDIG => seg7_in0,
--- 		 oSEG => HEX_out4(6 DOWNTO 0));
-
-
--- b2v_inst1 : entity work.seg7_lut
--- PORT MAP(iDIG => seg7_in1,
--- 		 oSEG => HEX_out3(6 DOWNTO 0));
-
-
-
--- b2v_inst2 : entity work.seg7_lut
--- PORT MAP(iDIG => seg7_in2,
--- 		 oSEG => HEX_out2(6 DOWNTO 0));
-
-
--- b2v_inst3 : entity work.seg7_lut
--- PORT MAP(iDIG => seg7_in3,
--- 		 oSEG => HEX_out1(6 DOWNTO 0));
-
-
--- b2v_inst4 : entity work.seg7_lut
--- PORT MAP(iDIG => seg7_in4,
--- 		 oSEG => HEX_out0(6 DOWNTO 0));
-
-
--- b2v_inst5 : entity work.dig2dec
--- PORT MAP(vol => display_number,
--- 		 seg0 => seg7_in4,
--- 		 seg1 => seg7_in3,
--- 		 seg2 => seg7_in2,
--- 		 seg3 => seg7_in1,
--- 		 seg4 => seg7_in0);
-
-
--- HEX0 <= HEX_out0;
--- HEX1 <= HEX_out1;
--- HEX2 <= HEX_out2;
--- HEX3 <= HEX_out3;
--- HEX4 <= HEX_out4;
--- HEX5(7) <= one;
--- HEX5(6) <= one;
--- HEX5(5) <= one;
--- HEX5(4) <= one;
--- HEX5(3) <= one;
--- HEX5(2) <= one;
--- HEX5(1) <= one;
--- HEX5(0) <= one;
-
--- zero <= '0';
--- one <= '1';
--- HEX_out0(7) <= '1';
--- HEX_out1(7) <= '1';
--- HEX_out2(7) <= '1';
--- HEX_out3(7) <= '1';
--- HEX_out4(7) <= '1';
-
-
-
--- LEDR <= SW;
 
 END bdf_type;

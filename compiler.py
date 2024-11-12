@@ -121,6 +121,7 @@ funct3_map = {
     "FSGNJ.S" : "000",
     "FSGNJN.S" : "001",
     "FSGNJX.S" : "010",
+    "FCVT.S.W" : "000",
     "FLW" : "010",
     "FSW" : "010",
 }
@@ -142,6 +143,7 @@ funct7_map.update({
     "FSGNJ.S" : "0010000",
     "FSGNJN.S" : "0010000",
     "FSGNJX.S" : "0010000",
+    "FCVT.S.W" : "1101000",
 })
 
 def int2signedbin(number: int, digits: int) -> int:
@@ -324,7 +326,7 @@ def process_line(line):
             rs2 = int(words[3][1:])
             opcode_number = int("0110011", 2)
             bytecode = '{}{:05b}{:05b}{}{:05b}{:07b}'.format(funct7_map[opcode], rs2, rs1, funct3_map[opcode], rd, opcode_number)
-        case "FADD.S"|"FSUB.S"|"FMUL.S"|"FEQ.S"|"FLT.S"|"FLE.S"|"FMV.X.W"|"FMV.W.X"|"FSGNJ.S"|"FSGNJN.S"|"FSGNJX.S":
+        case "FADD.S"|"FSUB.S"|"FMUL.S"|"FEQ.S"|"FLT.S"|"FLE.S"|"FMV.X.W"|"FMV.W.X"|"FSGNJ.S"|"FSGNJN.S"|"FSGNJX.S"|"FCVT.S.W":
             rd = int(words[1][1:])
             rs1 = int(words[2][1:])
             rs2 = int(words[3][1:]) if len(words) > 3 else 0
@@ -347,6 +349,8 @@ def process_line(line):
             formated_binary_imm1 =  binary_imm[11:4:-1]
             formated_binary_imm2 = binary_imm[4::-1]
             bytecode = '{}{:05b}{:05b}{}{}{:07b}'.format(formated_binary_imm1, rs2, rs1, funct3_map[opcode], formated_binary_imm2, opcode_number)
+        case _:
+            raise ValueError("Opcode not found: ", opcode)
 
     print(words)
     print(bytecode)

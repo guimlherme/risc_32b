@@ -32,7 +32,11 @@ entity ALU is
         mem_enable_flag_alu: out std_logic;
         mem_address_alu: out std_logic_vector(31 downto 0);
         mem_funct3_alu: out std_logic_vector(2 downto 0);
-        mem_mode_alu: out std_logic
+        mem_mode_alu: out std_logic;
+
+        accelerator_en : out std_logic;
+        accelerator_imm: out std_logic_vector(31 downto 0);
+        accelerator_funct3: out std_logic_vector(2 downto 0)
 
     );
 end ALU;		
@@ -64,6 +68,12 @@ signal rsf2_sign     : std_logic;
 signal fp_result_add_sub    : std_logic_vector(31 downto 0);
 signal fp_add_sub_op : std_logic; -- 0=add, 1=sub
 signal fp_result_mul    : std_logic_vector(31 downto 0);
+signal fp_result_fcvtsw : std_logic_vector(31 downto 0);
+
+-- Accelerator
+signal accelerator_en_internal : std_logic;
+signal accelerator_imm_internal : std_logic_vector(31 downto 0);
+signal accelerator_funct3_internal : std_logic_vector(2 downto 0);
 
 begin
 
@@ -74,6 +84,8 @@ rsf1_exponent <= unsigned(rsf1(30 downto 23));
 rsf2_exponent <= unsigned(rsf2(30 downto 23));
 rsf1_sign <= rsf1(31);
 rsf2_sign <= rsf2(31);
+
+
 
 
 process(clk, reset)
@@ -90,6 +102,7 @@ if reset='1' then
     reg_write_flag_fp_alu <= '0';
     jmp_flag_alu <= '0';
     mem_enable_flag_alu <= '0';
+    accelerator_en <= '0';
 
 elsif rising_edge(clk) then
 
@@ -112,6 +125,10 @@ elsif rising_edge(clk) then
         jmp_flag_alu <= jmp_flag;
         mem_enable_flag_alu <= mem_enable_flag;
 
+        accelerator_en <= accelerator_en_internal;
+        accelerator_imm <= accelerator_imm_internal;
+        accelerator_funct3 <= accelerator_funct3_internal;
+
     elsif alu_flush='1' then
 
         reg_write_address_alu <= (others => '-');
@@ -125,14 +142,19 @@ elsif rising_edge(clk) then
         reg_write_flag_fp_alu <= '0';
         jmp_flag_alu <= '0';
         mem_enable_flag_alu <= '0';
+        accelerator_en <= '0';
     
+    elsif alu_stall='1' then
+        -- exceptionally, reset accelerator flags
+        accelerator_en <= '0';
+
     end if;
 
 end if;
 end process;
 
 -- process(all) -- Unsupported in VHDL 1993
-process(rs1, rs2, imm, alu_pc, op, funct3, funct7, fp_result_add_sub, fp_result_mul)
+process(rs1, rs2, imm, alu_pc, op, funct3, funct7, fp_result_add_sub, fp_result_mul, fp_result_fcvtsw)
 
 -- Helper signals
 
@@ -168,6 +190,9 @@ begin
     mem_address <= (others => '-');
     mem_funct3 <= (others => '-');
     mem_mode <= '-';
+    accelerator_en_internal <= '0';
+    accelerator_imm_internal <= (others => '-');
+    accelerator_funct3_internal <= (others => '-');
 
     case op is
         when "0010011" => -- Operations with immediates
@@ -337,6 +362,8 @@ begin
                 elsif funct3="010" then -- FSGNJX.S
                     result <= (rsf1(31) xor rsf2(31)) & rsf1(30 downto 0);
                 end if;
+            elsif funct7 = "1101000" then -- FCVT.S.W
+                result <= fp_result_fcvtsw;
             end if;
         
         when "0000111" => -- FLW
@@ -351,6 +378,12 @@ begin
             mem_enable_flag <= '1';
             mem_mode <= '1'; -- write
             result <= rsf2;
+        
+        when "0001011" => -- Accelerator
+            -- These signals are not synchronized with the clock
+            accelerator_en_internal <= '1';
+            accelerator_imm_internal <= "000000000000" & imm(31 downto 12);
+            accelerator_funct3_internal <= reg_write_address_decoder(2 downto 0);
 
         when others => NULL;
     end case;
@@ -378,6 +411,12 @@ port map(
    rs1_sign => rsf1_sign,
    rs2_sign => rsf2_sign,
    fp_result => fp_result_mul
+);
+
+FP_cvtsw_inst: entity work.FP_cvtsw
+ port map(
+    rs1 => rs1,
+    fp_result => fp_result_fcvtsw
 );
 
 end ALU_arch;

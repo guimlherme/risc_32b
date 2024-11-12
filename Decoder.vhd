@@ -143,6 +143,8 @@ begin
 						reg_write_flag_fp <= '1'; -- Writes in the fp register
 					elsif funct7 = "0010000" then -- Sign injection
 						reg_write_flag_fp <= '1';
+					elsif funct7 = "1101000" then -- FCVT.S.W
+						reg_write_flag_fp <= '1';
 					end if;
 				
 				when "0000111" => -- FLW
@@ -151,6 +153,9 @@ begin
 				
 				when "0100111" => -- FSW
 					--mem_enable_flag <= '1';	
+
+				when "0001011" => -- Accelerator	
+					-- Nothing
 
 				when others => NULL;
 			end case;
@@ -179,7 +184,7 @@ begin
 					alu_immediate_in(10 downto 5) <= imm_10_5_isbj;
 					alu_immediate_in(4 downto 1) <= imm_4_1_sb;
 					alu_immediate_in(0) <= '0';
-				when "0110111"|"0010111" => -- U-type
+				when "0110111"|"0010111"|"0001011" => -- U-type
 					alu_immediate_in(31) <= imm_sign;
 					alu_immediate_in(30 downto 20) <= imm_30_20_u;
 					alu_immediate_in(19 downto 12) <= imm_19_12_uj;
