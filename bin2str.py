@@ -1,4 +1,6 @@
 
+from sys import argv
+
 hextobinary = {
     "0": "0000",
     "1": "0001",
@@ -60,6 +62,14 @@ def binary_to_str(binary_file_path, str_file_path):
 
 
 if __name__ == "__main__":
-    binary_file = "accelerated.out"
-    str_file = "output.txt"
-    binary_to_str(binary_file, str_file)
+    if len(argv) >= 2:
+        file_r = open(argv[1], 'r')
+    else:
+        file_r = open('input.txt', 'r')
+
+    if len(argv) >= 3:
+        file_w = open(argv[2], 'w')
+    else:
+        file_w = open('output.txt', 'w')
+    
+    binary_to_str(file_r, file_w)

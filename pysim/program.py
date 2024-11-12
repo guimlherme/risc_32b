@@ -3,8 +3,10 @@ from decoder import RiscVDecoder
 from executor import RiscVExecutor
 from emulators import emulate_int32, signed_to_float
 from register import Register
+from sys import argv
 
 def debug():
+    print("Entered debug mode:")
     while True:
         cmd = input()
         if len(cmd) > 0:
@@ -31,6 +33,7 @@ class Program:
 
     def load_instructions(self, file: str) -> list[int]:
         f = open(file, 'r').readlines()
+        pr
         num_instructions = len(f)
         instructions = [0] * num_instructions
         for line_num, line in enumerate(f):
@@ -45,6 +48,7 @@ class Program:
             self.ram[addr * 4] = instruction
     
     def read_instruction(self, addr: int):
+        print(addr)
         return self.instructions[addr // 4]
     
     def get_PC(self):
@@ -61,8 +65,8 @@ class Program:
         # print(self.pc, f"{instruction:032b}", decode_dict)
         self.executor(decode_dict)
 
-        if instruction == 0b11010000000000111000000011010011:
-            debug()
+        # if instruction == 0b11010000000000111000000011010011:
+        #     debug()
 
         if not self.jmp_flag:
             self.pc += 4
@@ -80,7 +84,12 @@ class Program:
 
 if __name__ == "__main__":
 
-    prog = Program("output.txt")
+    if len(argv) >= 2:
+        program_file_name = argv[1]
+    else:
+        program_file_name = "output.txt"
+    
+    prog = Program(program_file_name)
 
     prog.run(stop_addr=40)
 

@@ -1,0 +1,12 @@
+*
+!LICENSE
+!README.MD
+!.gitignore
+!*.vhd
+!*.vwf
+!*.py
+!wave.do
+!pysim/
+!pysim/*
+!tests/
+!tests/*

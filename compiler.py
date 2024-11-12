@@ -2,6 +2,7 @@
 
 from collections import defaultdict 
 import struct
+from sys import argv
 
 # Warning: this register might be arbitrarily overwritten due to intermediate instructions
 TEMPORARY_REGISTER = "x30"
@@ -173,10 +174,20 @@ def divide_lui_addi(value: int) -> tuple[int, int]:
     
     return lui_int, addi_int
 
+print(len(argv))
 
-# Using readlines()
-file_r = open('input.txt', 'r')
-file_w = open('output.txt', 'w')
+if len(argv) >= 2:
+    file_r_name = argv[1]
+else:
+    file_r_name = 'input.txt'
+
+if len(argv) >= 3:
+    file_w_name = argv[2]
+else:
+    file_w_name = 'output.txt'
+
+file_r = open(file_r_name, 'r')
+file_w = open(file_w_name, 'w')
 
 Lines = file_r.readlines()
 gotos = {}
@@ -358,7 +369,7 @@ def process_line(line):
     file_w.write(bytecode + "\n")
     counter += 4
 
-file_r = open('input.txt', 'r')
+file_r = open(file_r_name, 'r')
 Lines = file_r.readlines()
 for line in Lines:
     process_line(line)
@@ -366,5 +377,5 @@ file_r.close()
 
 
 
-print("Finished decoding")
+print(f"Finished decoding from {file_r_name} to {file_w_name}")
 input()
