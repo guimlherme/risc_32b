@@ -11,7 +11,8 @@ entity decoder is
 		  
         instruction: in std_logic_vector(31 downto 0);
 		
-		reg_write_flag: out std_logic;
+		reg_write_flag_int: out std_logic;
+		reg_write_flag_fp: out std_logic;
 		reg_write_address: out std_logic_vector(4 downto 0);
 		
 		alu_reg_in1: out std_logic_vector(4 downto 0);
@@ -78,7 +79,8 @@ begin
 	
 	if reset='1' then
 		alu_op <= NOP_instruction(6 downto 0);
-		reg_write_flag <= '0';
+		reg_write_flag_int <= '0';
+		reg_write_flag_fp <= '0';
 		reg_write_address <= NOP_instruction(11 downto 7);
 	
 	elsif rising_edge(clk) then
@@ -87,7 +89,8 @@ begin
 			-- Default values
 			alu_pc <= decoder_pc;
 
-			reg_write_flag <= '0';
+			reg_write_flag_int <= '0';
+			reg_write_flag_fp <= '0';
 			reg_write_address <= reg_dest;
 
 			alu_op <= opcode;
@@ -98,52 +101,74 @@ begin
 
 			case opcode is
 				when "0010011" => -- Operations with immediates
-					reg_write_flag <= '1';
+					reg_write_flag_int <= '1';
 				
 				when "0110111" => -- LUI
-					reg_write_flag <= '1';
+					reg_write_flag_int <= '1';
 				
 				when "0010111" => -- AUIPC
-					reg_write_flag <= '1';
+					reg_write_flag_int <= '1';
 
 				when "0110011" => -- Operations with registers
-					reg_write_flag <= '1';
-					
+					reg_write_flag_int <= '1';
 				
 				when "1101111" => -- JAL
-					reg_write_flag <= '1';
+					reg_write_flag_int <= '1';
 				
 				when "1100111" => -- JALR
-					reg_write_flag <= '1';
+					reg_write_flag_int <= '1';
 				
 				when "1100011" => -- branches
-					reg_write_flag <= '0';
+					reg_write_flag_int <= '0';
 		
 				when "0000011" => -- loads
-					reg_write_flag <= '1'; -- Not the usual write
+					reg_write_flag_int <= '1'; -- Not the usual write
 					--mem_enable_flag <= '1';
 				
 				when "0100011" => -- stores
-					reg_write_flag <= '0';
 					--mem_enable_flag <= '1';
+
+				when "1010011" => -- Simple operations
+					if funct7 = "0000000" then -- FADD.S
+						reg_write_flag_fp <= '1';
+					elsif funct7 = "0000100" then -- FSUB.S
+						reg_write_flag_fp <= '1';
+					elsif funct7 = "0001000" then -- FMUL.S
+						reg_write_flag_fp <= '1';
+					elsif funct7 = "1010000" then -- Comparisons
+						reg_write_flag_int <= '1'; -- FP comparison result goes to integer register
+					elsif funct7 = "1110000" then -- FMV.X.W (float to integer)
+						reg_write_flag_int <= '1'; -- Writes in the integer register
+					elsif funct7 = "1111000" then -- FMV.W.X (integer to float)
+						reg_write_flag_fp <= '1'; -- Writes in the fp register
+					elsif funct7 = "0010000" then -- Sign injection
+						reg_write_flag_fp <= '1';
+					end if;
+				
+				when "0000111" => -- FLW
+					reg_write_flag_fp <= '1'; -- Load to fp register file
+					--mem_enable_flag <= '1';
+				
+				when "0100111" => -- FSW
+					--mem_enable_flag <= '1';	
 
 				when others => NULL;
 			end case;
 
-			-- Reg x0 is read only
+			-- Int Reg x0 is read only
 			if reg_dest = "00000" then
-				reg_write_flag <= '0';
+				reg_write_flag_int <= '0';
 			end if;
 
 			-- Decode immediate
 			-- #TODO: optimize funct7 by encoding it here
 			case opcode is
-				when "1100111"|"0000011"|"0010011" => -- I-type
+				when "1100111"|"0000011"|"0010011"|"0000111" => -- I-type
 					alu_immediate_in(31 downto 11) <= (others => imm_sign);
 					alu_immediate_in(10 downto 5) <= imm_10_5_isbj;
 					alu_immediate_in(4 downto 1) <= imm_4_1_ij;
 					alu_immediate_in(0) <= instruction(20);
-				when "0100011" => -- S-type
+				when "0100011"|"0100111" => -- S-type
 					alu_immediate_in(31 downto 11) <= (others => imm_sign);
 					alu_immediate_in(10 downto 5) <= imm_10_5_isbj;
 					alu_immediate_in(4 downto 1) <= imm_4_1_sb;
@@ -175,7 +200,8 @@ begin
 			alu_immediate_in <= (others => '-');
 			alu_funct3 <= (others => '-');
 			alu_funct7 <= (others => '-');
-			reg_write_flag <= '0';
+			reg_write_flag_int <= '0';
+			reg_write_flag_fp <= '0';
 			reg_write_address <= NOP_instruction(11 downto 7);
 		end if;
 	end if;

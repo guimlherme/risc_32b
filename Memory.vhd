@@ -2,26 +2,54 @@ library ieee;
 
 use IEEE.STD_LOGIC_1164.ALL;
 Use ieee.numeric_std.all ;
+use std.textio.all;
 
 
 entity memory is
+	generic(
+		mem_size : in natural;
+		mem_file : in string := "output.txt"
+	);
 	port(
 			rw,en		:	in std_logic;
 			clk		:	in std_logic;
-			Address	:	in integer range 0 to 4046;
+			Address	:	in natural;
 			Data_in	:	in std_logic_vector(31 downto 0);
 			Data_out:	out std_logic_vector(31 downto 0)
-			);
+	);
 end memory;
 
 architecture memory_a of memory is
 
-type ram is array(0 to 4096) of std_logic_vector(31 downto 0);
+type ram is array(0 to mem_size-1) of std_logic_vector(31 downto 0);
 
-signal Data_Ram : ram ;
+impure function InitRamFromFile(RamFileName : in string) return ram is
+	FILE RamFile : text is RamFileName;
+	variable RamFileLine : line;
+	variable RAM : ram := (others => (others => 'X'));
+	variable temp_bitvector : BIT_VECTOR(31 downto 0);
+	begin
+	for i in ram'range loop
+		if endfile(RamFile) then
+			return RAM;
+		end if;
+		readline(RamFile, RamFileLine);
+		if RamFileLine'length=0 then
+			return RAM;
+		end if;
+		read(RamFileLine, temp_bitvector);
+		RAM(i) := To_StdLogicVector(temp_bitvector);
+	end loop;
+	return RAM;
+end function;
+
+signal Data_Ram : ram := InitRamFromFile(mem_file);
+signal Address_4bytes : natural;
 
 --------------- BEGIN -----------------------------------------------------------------
 begin
+
+Address_4bytes <= Address / 4;
 
 -- rw='1' means write
 	acces_ram:process(clk)
@@ -29,9 +57,9 @@ begin
 		if rising_edge(clk) then
 			if en='1' then
 				if rw='1' then
-					Data_Ram(Address) <= Data_in;
+					Data_Ram(Address_4bytes) <= Data_in;
 				end if;
-            	Data_out <= Data_Ram(Address);
+            	Data_out <= Data_Ram(Address_4bytes);
 			end if;
         end if;
 		

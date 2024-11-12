@@ -26,6 +26,7 @@ constant NOP_instruction : std_logic_vector(31 downto 0) := "0000000000000000000
 signal PC_counter: std_logic_vector(31 downto 0) :=  (others=>'0');
 signal PC_counter_plus_4: std_logic_vector(31 downto 0);
 signal PC_counter_next: std_logic_vector(31 downto 0);
+signal PC_counter_next_natural: natural;
 signal instruction_fetched: std_logic_vector(31 downto 0);
 signal last_data_flush: std_logic := '0';
 signal last_data_stall: std_logic := '0';
@@ -34,6 +35,7 @@ signal last_instruction: std_logic_vector(31 downto 0);
 Begin
 
 PC_counter_plus_4 <= std_logic_vector(unsigned(PC_counter)+4);
+PC_counter_next_natural <= to_integer(unsigned(PC_counter_next));
 
 process(PC_jump_flag, PC_jump_addr, PC_counter_plus_4)
 begin
@@ -44,12 +46,18 @@ begin
 	end if;
 end process;
 
-rom_inst:	entity work.rom 
-PORT MAP
-			(en	=> en,
-			clk => clk,
-			Address => PC_counter_next,
-			Data_out => instruction_fetched);
+rom_inst: entity work.memory
+ generic map(
+	mem_size => 65536
+)
+ port map(
+	rw => '0',
+	en => en,
+	clk => clk,
+	Address => PC_counter_next_natural,
+	Data_in => (others => '0'),
+	Data_out => instruction_fetched
+);
 
 Process (clk, reset)
 

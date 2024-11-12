@@ -10,6 +10,7 @@ entity ALU is
         alu_flush: in std_logic;
 
         rs1, rs2, imm: in std_logic_vector(31 downto 0);
+        rsf1, rsf2: in std_logic_vector(31 downto 0); -- floating point registers
         op: in std_logic_vector(6 downto 0);
         funct3: in std_logic_vector(2 downto 0);
         funct7: in std_logic_vector(6 downto 0);
@@ -21,9 +22,11 @@ entity ALU is
         jmp_flag_alu: out std_logic;
         jmp_dest_alu: out std_logic_vector(31 downto 0);
 
-        reg_write_flag_decoder: in std_logic;
+        reg_write_flag_int_decoder: in std_logic;
+        reg_write_flag_fp_decoder: in std_logic;
         reg_write_address_decoder: in std_logic_vector(4 downto 0);
-        reg_write_flag_alu: out std_logic;
+        reg_write_flag_int_alu: out std_logic;
+        reg_write_flag_fp_alu: out std_logic;
         reg_write_address_alu: out std_logic_vector(4 downto 0);
 
         mem_enable_flag_alu: out std_logic;
@@ -49,7 +52,29 @@ signal mem_mode: std_logic;
 
 constant zeros : std_logic_vector(31 downto 0) := (others => '0');
 
+
+-- FP Signals
+
+signal rsf1_exponent : unsigned(7 downto 0);
+signal rsf2_exponent : unsigned(7 downto 0);
+signal rsf1_radical  : unsigned(23 downto 0);
+signal rsf2_radical  : unsigned(23 downto 0);
+signal rsf1_sign     : std_logic;
+signal rsf2_sign     : std_logic;
+signal fp_result_add_sub    : std_logic_vector(31 downto 0);
+signal fp_add_sub_op : std_logic; -- 0=add, 1=sub
+signal fp_result_mul    : std_logic_vector(31 downto 0);
+
 begin
+
+-- FP Signals
+rsf1_radical <= unsigned("1" & rsf1(22 downto 0));
+rsf2_radical <= unsigned("1" & rsf2(22 downto 0));
+rsf1_exponent <= unsigned(rsf1(30 downto 23));
+rsf2_exponent <= unsigned(rsf2(30 downto 23));
+rsf1_sign <= rsf1(31);
+rsf2_sign <= rsf2(31);
+
 
 process(clk, reset)
 begin
@@ -61,7 +86,8 @@ if reset='1' then
     mem_mode_alu <= '-';
     zero_flag <= '-';
 
-    reg_write_flag_alu <= '0';
+    reg_write_flag_int_alu <= '0';
+    reg_write_flag_fp_alu <= '0';
     jmp_flag_alu <= '0';
     mem_enable_flag_alu <= '0';
 
@@ -81,7 +107,8 @@ elsif rising_edge(clk) then
         end if;
         result_out <= result;
 
-        reg_write_flag_alu <= reg_write_flag_decoder;
+        reg_write_flag_int_alu <= reg_write_flag_int_decoder;
+        reg_write_flag_fp_alu <= reg_write_flag_fp_decoder;
         jmp_flag_alu <= jmp_flag;
         mem_enable_flag_alu <= mem_enable_flag;
 
@@ -94,7 +121,8 @@ elsif rising_edge(clk) then
         mem_mode_alu <= '-';
         zero_flag <= '-';
 
-        reg_write_flag_alu <= '0';
+        reg_write_flag_int_alu <= '0';
+        reg_write_flag_fp_alu <= '0';
         jmp_flag_alu <= '0';
         mem_enable_flag_alu <= '0';
     
@@ -104,7 +132,9 @@ end if;
 end process;
 
 -- process(all) -- Unsupported in VHDL 1993
-process(rs1, rs2, imm, alu_pc, op, funct3, funct7)
+process(rs1, rs2, imm, alu_pc, op, funct3, funct7, fp_result_add_sub, fp_result_mul)
+
+-- Helper signals
 
 variable unsigned_rs1 : unsigned(31 downto 0);
 variable signed_rs1   : signed(31 downto 0);
@@ -118,8 +148,8 @@ variable signed_alu_pc : signed(31 downto 0);
 
 begin
     
-	 -- Helper signals
-	 unsigned_rs1 := unsigned(rs1);
+    -- Helper signals
+    unsigned_rs1 := unsigned(rs1);
     signed_rs1   := signed(rs1);
     unsigned_rs2 := unsigned(rs2);
     signed_rs2   := signed(rs2);
@@ -186,10 +216,12 @@ begin
             -- reg_write_flag <= '1';
 
             if funct3="000" then
-                if funct7(5)='0' then -- ADD
+                if funct7(5)='0' and funct7(0)='0' then -- ADD
                     result <= std_logic_vector(signed_rs1 + signed_rs2);
-                else -- SUB
+                elsif funct7(5)='1' and funct7(0)='0' then -- SUB
                     result <= std_logic_vector(signed_rs1 - signed_rs2); -- #TODO: optimize SUB
+                else -- MUL
+                    result <= std_logic_vector(resize(signed_rs1 * signed_rs2, 32)); -- Takes the 32 lsb
                 end if;
 
             elsif funct3="010" then -- SLT
@@ -269,10 +301,83 @@ begin
             mem_enable_flag <= '1';
             mem_mode <= '1'; -- write
             result <= rs2;
+        
+        -------- FP Operations ---------
+
+        when "1010011" => -- Simple operations
+            if funct7 = "0000000" then -- FADD.S
+                fp_add_sub_op <= '0';
+                result <= fp_result_add_sub;
+            elsif funct7 = "0000100" then -- FSUB.S
+                fp_add_sub_op <= '1';
+                result <= fp_result_add_sub;
+            elsif funct7 = "0001000" then -- FMUL.S
+                result <= fp_result_mul;
+            elsif funct7 = "1010000" then -- Comparisons
+                if funct3="010" then -- FEQ.S
+                    if rsf1 = rsf2 then result <= (0 => '1', others => '0'); 
+                    else result <= (others => '0'); end if;
+                elsif funct3="001" or funct3="000" then -- FLT.S and FLE.S
+                    if rsf1_sign /= rsf2_sign then result <= (0 => rsf1_sign, others => '0'); 
+                    elsif rsf1_exponent < rsf2_exponent then result <= (0 => not rsf1_sign, others => '0');
+                    elsif rsf1_exponent > rsf2_exponent then result <= (0 => rsf1_sign, others => '0'); 
+                    elsif rsf1_radical < rsf2_radical then result <= (0 => not rsf1_sign, others => '0');
+                    elsif rsf1_radical > rsf2_radical then result <= (0 => rsf1_sign, others => '0');
+                    else result <= (0 => not funct3(0), others => '0'); end if;
+                end if;
+            elsif funct7 = "1110000" then -- FMV.X.W (float to integer)
+                result <= rsf1;
+            elsif funct7 = "1111000" then -- FMV.W.X (integer to float)
+                result <= rs1;
+            elsif funct7 = "0010000" then -- Sign injection
+                if funct3="000" then -- FSGNJ.S
+                    result <= rsf2(31) & rsf1(30 downto 0);
+                elsif funct3="001" then -- FSGNJN.S
+                    result <= (not rsf2(31)) & rsf1(30 downto 0);
+                elsif funct3="010" then -- FSGNJX.S
+                    result <= (rsf1(31) xor rsf2(31)) & rsf1(30 downto 0);
+                end if;
+            end if;
+        
+        when "0000111" => -- FLW
+            mem_address <= std_logic_vector(signed_rs1 + signed_imm);
+            mem_funct3 <= funct3;
+            mem_enable_flag <= '1';
+            mem_mode <= '0'; -- read
+        
+        when "0100111" => -- FSW
+            mem_address <= std_logic_vector(signed_rs1 + signed_imm);
+            mem_funct3 <= funct3;
+            mem_enable_flag <= '1';
+            mem_mode <= '1'; -- write
+            result <= rsf2;
+
         when others => NULL;
     end case;
 
 end process;
 
+FP_add_inst: entity work.FP_add
+ port map(
+    rs1_exponent => rsf1_exponent,
+    rs2_exponent => rsf2_exponent,
+    rs1_radical => rsf1_radical,
+    rs2_radical => rsf2_radical,
+    rs1_sign => rsf1_sign,
+    rs2_sign => rsf2_sign,
+    add_sub => fp_add_sub_op,
+    fp_result => fp_result_add_sub
+);
+
+FP_mul_inst: entity work.FP_mul
+port map(
+   rs1_exponent => rsf1_exponent,
+   rs2_exponent => rsf2_exponent,
+   rs1_radical => rsf1_radical,
+   rs2_radical => rsf2_radical,
+   rs1_sign => rsf1_sign,
+   rs2_sign => rsf2_sign,
+   fp_result => fp_result_mul
+);
 
 end ALU_arch;

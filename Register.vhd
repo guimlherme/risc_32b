@@ -5,6 +5,9 @@ Use ieee.numeric_std.all ;
 
 
 entity reg is
+	generic(
+		x0_hardwired_to_zero: boolean := False
+	);
 	port(
 			w_enable :  in std_logic;
 			clk		:	in std_logic;
@@ -41,7 +44,7 @@ Display_out <= Data_reg(1)(15 downto 0);
 			Data_reg <= (others => (others => '0'));
 		elsif rising_edge(clk) then
 			if w_enable='1' then
-				if Address_w_int = 0 then -- x0 is hard wired to zero;
+				if Address_w_int = 0 and x0_hardwired_to_zero = True then -- x0 is hard wired to zero;
 					Data_reg(0) <= x"00000000";
 				else
 					Data_reg(Address_w_int) <= Data_in_mem;

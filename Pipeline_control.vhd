@@ -11,11 +11,14 @@ entity pipeline_control is
 
         address_decoder_1 : in std_logic_vector(4 downto 0);
         address_decoder_2 : in std_logic_vector(4 downto 0);
-        reg_write_flag_decoder : in std_logic;
+        reg_write_flag_int_decoder : in std_logic;
+        reg_write_flag_fp_decoder : in std_logic;
         address_decoder_write : in std_logic_vector(4 downto 0);
-        reg_write_flag_alu : in std_logic;
+        reg_write_flag_int_alu : in std_logic;
+        reg_write_flag_fp_alu : in std_logic;
         address_alu : in std_logic_vector(4 downto 0);
-        reg_write_flag_mem : in std_logic;
+        reg_write_flag_int_mem : in std_logic;
+        reg_write_flag_fp_mem : in std_logic;
         address_mem : in std_logic_vector(4 downto 0);
         
         fetch_stall_command : out std_logic;
@@ -35,34 +38,40 @@ architecture pipeline_control_a of pipeline_control is
     signal data_hazard_mem : std_logic;
 begin
 
-calculate_data_hazard_decoder:process(address_decoder_write, address_decoder_1, address_decoder_2, reg_write_flag_decoder)
+calculate_data_hazard_decoder:process(address_decoder_write, address_decoder_1, address_decoder_2, reg_write_flag_int_decoder, reg_write_flag_fp_decoder)
 begin
-    if reg_write_flag_decoder='1' and ((address_decoder_write=address_decoder_1) or (address_decoder_write=address_decoder_2)) then
+    -- #TODO: This currently does not separate integer and floating point hazards
+    -- Some cycles will be lost 
+    if (reg_write_flag_int_decoder='1' or reg_write_flag_fp_decoder='1') and ((address_decoder_write=address_decoder_1) or (address_decoder_write=address_decoder_2)) then
         data_hazard_decoder <= '1';
     else
         data_hazard_decoder <= '0';
     end if;
 end process calculate_data_hazard_decoder;
 
-calculate_data_hazard_alu:process(address_alu, address_decoder_1, address_decoder_2, reg_write_flag_alu)
+calculate_data_hazard_alu:process(address_alu, address_decoder_1, address_decoder_2, reg_write_flag_int_alu, reg_write_flag_fp_alu)
 begin
-    if reg_write_flag_alu='1' and ((address_alu=address_decoder_1) or (address_alu=address_decoder_2)) then
+    -- #TODO: This currently does not separate integer and floating point hazards
+    -- Some cycles will be lost 
+    if (reg_write_flag_int_alu='1' or reg_write_flag_fp_alu='1') and ((address_alu=address_decoder_1) or (address_alu=address_decoder_2)) then
         data_hazard_alu <= '1';
     else
         data_hazard_alu <= '0';
     end if;
 end process calculate_data_hazard_alu;
 
-calculate_data_hazard_mem:process(address_mem, address_decoder_1, address_decoder_2, mem_delayed)
+calculate_data_hazard_mem:process(address_mem, address_decoder_1, address_decoder_2, mem_delayed, reg_write_flag_int_mem, reg_write_flag_fp_mem)
 begin
-    if reg_write_flag_mem='1' and ((address_mem=address_decoder_1) or (address_mem=address_decoder_2)) then
+    -- #TODO: This currently does not separate integer and floating point hazards
+    -- Some cycles will be lost 
+    if (reg_write_flag_int_mem='1' or reg_write_flag_fp_mem='1') and ((address_mem=address_decoder_1) or (address_mem=address_decoder_2)) then
         data_hazard_mem <= '1';
     else
         data_hazard_mem <= '0';
     end if;
 end process calculate_data_hazard_mem;
 
-pipeline_control_proc:process(data_hazard_decoder, data_hazard_alu, data_hazard_mem, branching_hazard)
+pipeline_control_proc:process(data_hazard_decoder, data_hazard_alu, data_hazard_mem, branching_hazard, mem_delayed)
 begin
 
     -- Default values

@@ -51,11 +51,14 @@ SIGNAL  instruction : std_logic_vector(31 downto 0) := NOP_instruction;
 SIGNAL  jmp_flag_alu : std_logic;
 SIGNAL  jmp_dest_alu :  std_logic_vector(31 downto 0);
 
-SIGNAL	reg_write_flag_decoder : std_logic;
+SIGNAL	reg_write_flag_int_decoder : std_logic;
 SIGNAL	reg_write_address_decoder : std_logic_vector(4 downto 0);
-SIGNAL	reg_write_flag_alu : std_logic;
+SIGNAL  reg_write_flag_fp_decoder : std_logic;
+SIGNAL	reg_write_flag_int_alu : std_logic;
 SIGNAL	reg_write_address_alu : std_logic_vector(4 downto 0);
-SIGNAL  reg_write_flag_mem : std_logic;
+SIGNAL  reg_write_flag_fp_alu : std_logic;
+SIGNAL  reg_write_flag_int_mem : std_logic;
+SIGNAL  reg_write_flag_fp_mem : std_logic;
 SIGNAL  reg_write_address_mem : std_logic_vector(4 downto 0);
 
 SIGNAL	alu_reg_in1 : std_logic_vector(4 downto 0);
@@ -68,6 +71,8 @@ SIGNAL	alu_pc: std_logic_vector(31 downto 0);
 
 SIGNAL	reg_data_out1 : std_logic_vector(31 downto 0);
 SIGNAL	reg_data_out2 : std_logic_vector(31 downto 0);
+SIGNAL	reg_data_out_fp1 : std_logic_vector(31 downto 0);
+SIGNAL	reg_data_out_fp2 : std_logic_vector(31 downto 0);
 SIGNAL	alu_result : std_logic_vector(31 downto 0);
 SIGNAL	alu_zero : std_logic;
 
@@ -111,11 +116,14 @@ port map (
   branching_hazard      => jmp_flag_alu,
   address_decoder_1 => alu_reg_in1,
   address_decoder_2 => alu_reg_in2,
-  reg_write_flag_decoder => reg_write_flag_decoder,
+  reg_write_flag_int_decoder => reg_write_flag_int_decoder,
+  reg_write_flag_fp_decoder => reg_write_flag_fp_decoder,
   address_decoder_write => reg_write_address_decoder,
-  reg_write_flag_alu => reg_write_flag_alu,
+  reg_write_flag_int_alu => reg_write_flag_int_alu,
+  reg_write_flag_fp_alu => reg_write_flag_fp_alu,
   address_alu => reg_write_address_alu,
-  reg_write_flag_mem => reg_write_flag_mem,
+  reg_write_flag_int_mem => reg_write_flag_int_mem,
+  reg_write_flag_fp_mem => reg_write_flag_fp_mem,
   address_mem => reg_write_address_mem,
   fetch_stall_command   => fetch_stall,
   decoder_stall_command => decoder_stall,
@@ -146,7 +154,8 @@ PORT MAP (
 			instruction => instruction,
 			decoder_stall => decoder_stall,
 			decoder_flush => decoder_flush,
-			reg_write_flag => reg_write_flag_decoder,
+			reg_write_flag_int => reg_write_flag_int_decoder,
+			reg_write_flag_fp => reg_write_flag_fp_decoder,
 			reg_write_address => reg_write_address_decoder,
 			alu_reg_in1 => alu_reg_in1,
 			alu_reg_in2 => alu_reg_in2,
@@ -159,7 +168,6 @@ PORT MAP (
 		);
 
 
-
 alu_inst:	entity work.ALU 
 PORT MAP(
 			clk => CLK,
@@ -168,6 +176,8 @@ PORT MAP(
         	alu_flush => alu_flush,
 			rs1 => reg_data_out1, 
 			rs2 => reg_data_out2,
+			rsf1 => reg_data_out_fp1,
+			rsf2 => reg_data_out_fp2,
 			imm => alu_immediate_in, 
 			op => alu_op, 
 			funct3 => alu_funct3,
@@ -177,9 +187,11 @@ PORT MAP(
 			alu_pc => alu_pc,
 			jmp_flag_alu => jmp_flag_alu,
 			jmp_dest_alu => jmp_dest_alu,
-			reg_write_flag_decoder => reg_write_flag_decoder,
+			reg_write_flag_int_decoder => reg_write_flag_int_decoder,
+			reg_write_flag_fp_decoder => reg_write_flag_fp_decoder,
 			reg_write_address_decoder => reg_write_address_decoder,
-			reg_write_flag_alu => reg_write_flag_alu,
+			reg_write_flag_int_alu => reg_write_flag_int_alu,
+			reg_write_flag_fp_alu => reg_write_flag_fp_alu,
 			reg_write_address_alu => reg_write_address_alu,
 			mem_enable_flag_alu => mem_enable_flag_alu,
 			mem_address_alu => mem_address_alu,
@@ -198,16 +210,21 @@ PORT MAP(
 			Address	 => mem_address_alu,
 			Data_in	 => alu_result,
 			Data_out => reg_data_in_mem,
-			reg_write_flag_alu => reg_write_flag_alu,
-			reg_write_flag_mem => reg_write_flag_mem,
+			reg_write_flag_int_alu => reg_write_flag_int_alu,
+			reg_write_flag_fp_alu => reg_write_flag_fp_alu,
+			reg_write_flag_int_mem => reg_write_flag_int_mem,
+			reg_write_flag_fp_mem => reg_write_flag_fp_mem,
 			reg_write_address_alu => reg_write_address_alu,
 			reg_write_address_mem => reg_write_address_mem,
 			mem_delayed => mem_delayed
 			);
 
 reg_inst:	entity work.reg 
+GENERIC MAP(
+	x0_hardwired_to_zero => True
+)
 PORT MAP(
-			w_enable => reg_write_flag_mem,
+			w_enable => reg_write_flag_int_mem,
 			clk => CLK,
 			reset => RESET,
 			SW => SW,
@@ -217,9 +234,27 @@ PORT MAP(
 			Data_in_mem => reg_data_in_mem,
 			Data_out_1 => reg_data_out1,
 			Data_out_2 => reg_data_out2,
-			Display_out => display_number);
+			Display_out => open);
 
 REG_OUT <= display_number;
+
+fp_reg_inst:	entity work.reg 
+GENERIC MAP(
+	x0_hardwired_to_zero => False
+)
+PORT MAP(
+			w_enable => reg_write_flag_fp_mem,
+			clk => CLK,
+			reset => RESET,
+			SW => SW,
+			
+			Address_w => reg_write_address_mem,
+			Address_r_1 => alu_reg_in1,
+			Address_r_2 => alu_reg_in2,
+			Data_in_mem => reg_data_in_mem,
+			Data_out_1 => reg_data_out_fp1,
+			Data_out_2 => reg_data_out_fp2,
+			Display_out => display_number);
 
 
 -- LED display components

@@ -18,16 +18,9 @@ begin
     clk <= not clk after 10 ps;
 
     -- CPU instantiation 
-    UUT : entity work.CPU port map(MAX10_CLK1_50 => clk,
+    UUT : entity work.CPU port map(CLK => clk,
     RESET => reset,
-    SW => (others => '0'),
-    HEX0 => open,
-    HEX1 => open,
-    HEX2 => open,
-    HEX3 => open,
-    HEX4 => open,
-    HEX5 => open,
-    LEDR => open);     
+    SW => (others => '0'));     
 
     process
     begin
